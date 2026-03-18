@@ -39,6 +39,7 @@ resources:
               schema: "{{job.parameters.schema}}"
               model_name: "{{job.parameters.model_name}}"
               experiment_name: "{{job.parameters.experiment_name}}"
+              git_source_info: "url:${bundle.git.origin_url}; branch:${bundle.git.branch}; commit:${bundle.git.commit}"
 
         - task_key: validate_model
           depends_on:

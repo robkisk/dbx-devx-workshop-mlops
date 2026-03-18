@@ -32,7 +32,7 @@ variables:
     default: chewy_churn_model
   experiment_name:
     description: MLflow experiment path
-    default: /chewy-churn-experiment
+    default: /Users/${workspace.current_user.userName}/${bundle.target}-chewy-churn-experiment
   endpoint_name:
     description: Model Serving endpoint name
     default: chewy-churn-serving
