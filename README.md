@@ -1,193 +1,311 @@
-# CI/CD with Databricks Asset Bundles Workshop
+# MLOps on Databricks Workshop
 
-Demonstrates **Databricks Asset Bundles (DABs)** with a complete CI/CD pipeline using GitHub Actions, **Workload Identity Federation (OIDC)**, and the **Direct Deployment Engine**.
+End-to-end MLOps demo using **Databricks Asset Bundles (DABs)**, **GitHub Actions CI/CD**, **MLflow**, **Unity Catalog**, **Model Serving**, and **Data Profiling**. Built around a customer churn prediction use case.
 
-## What This Project Deploys
+## What This Project Demonstrates
 
-- A **Spark Declarative Pipeline (SDP)** that reads NYC taxi trip data and aggregates fares by pickup zone
-- A **scheduled job** that refreshes the pipeline daily
-- All resources are parameterized across **dev** and **prod** workspaces using Unity Catalog
+### MLOps Lifecycle (Deploy Code Pattern)
 
-## Prerequisites
+All ML pipelines — training, validation, deployment, inference, and monitoring — are version-controlled and promoted through environments as code. Models are trained in each environment using that environment's data, not promoted as artifacts between environments.
 
-- [Databricks CLI](https://docs.databricks.com/dev-tools/cli/index.html) (v0.279+, for Direct Deployment Engine)
-- Two Databricks workspaces (dev and prod) with Unity Catalog enabled
-- A Databricks service principal with OIDC federation policies for GitHub Actions
-- GitHub account with repository environments (`dev` and `prod`) configured
+```
+[Setup Data] -> [Feature Engineering] -> [Train Model] -> [Validate Model] -> [Deploy Model]
+                                              |                                      |
+                                              v                                      v
+                                         MLflow Experiment                   Model Serving Endpoint
+                                         UC Registered Model                 Champion/Challenger Aliases
+                                              |
+                                              v
+                                      [Batch Inference] -> [Data Profiling Monitor]
+                                              |                      |
+                                              v                      v
+                                      Predictions Table       Drift Metrics + Dashboard
+```
+
+### Key Concepts Showcased
+
+- **Databricks Asset Bundles** — declarative YAML project structure with environment-specific targets, variable interpolation, and `uv build --wheel` artifact packaging
+- **GitHub Actions CI/CD** — three-workflow pattern (validate on PR, deploy on push) with OAuth token federation (OIDC) — no long-lived secrets
+- **MLflow Tracking + Unity Catalog Model Registry** — experiment tracking, model registration with three-level names, Champion/Challenger aliases
+- **Multi-Task Databricks Workflows** — sequential job orchestration (train -> validate -> deploy) with task value passing between steps
+- **Model Serving** — serverless REST endpoint with zero-downtime model updates
+- **Data Profiling** — inference table monitoring for drift detection with auto-generated dashboards
+- **Python Wheel Packaging** — demonstrates DABs `python_wheel_task` with `uv build --wheel` as an alternative deployment pattern
 
 ## Project Structure
 
 ```
 .
-├── databricks.yml                 # Bundle configuration (targets, variables, includes)
+├── databricks.yml                          # Bundle root: targets, variables, artifacts
 ├── resources/
-│   ├── devx_lakeflow_project_etl.pipeline.yml  # SDP pipeline definition
-│   └── sample_job.job.yml                       # Scheduled job definition
+│   ├── chewy_churn_artifacts.yml           # MLflow experiment + UC registered model
+│   ├── chewy_churn_setup.job.yml           # Data generation + feature engineering job
+│   ├── chewy_churn_training.job.yml        # Train -> Validate -> Deploy workflow
+│   ├── chewy_churn_inference.job.yml       # Batch inference (daily, scheduled)
+│   ├── chewy_churn_monitoring.job.yml      # Data Profiling refresh (daily, scheduled)
+│   ├── chewy_churn_wheel_demo.job.yml      # Python wheel packaging demo
+│   ├── devx_lakeflow_project_etl.pipeline.yml  # SDP ETL pipeline (data engineering demo)
+│   └── sample_job.job.yml                      # ETL pipeline refresh job
 ├── src/
-│   ├── transformations/           # Pipeline source code (SDP tables)
-│   │   ├── sample_trips_devx_lakeflow_project.py
-│   │   └── sample_zones_devx_lakeflow_project.py
-│   └── explorations/              # Ad-hoc notebooks
+│   ├── chewy_churn/                        # ML notebooks
+│   │   ├── 00_setup_data.py                #   Synthetic customer data generation
+│   │   ├── 01_feature_engineering.py       #   Feature table with UC primary key
+│   │   ├── 02_train_model.py              #   RandomForest training + MLflow logging
+│   │   ├── 03_validate_model.py           #   Threshold checks + challenger alias
+│   │   ├── 04_deploy_model.py             #   Champion/Challenger + serving endpoint
+│   │   ├── 05_batch_inference.py          #   Score with champion model
+│   │   └── 06_monitor.py                  #   Data Profiling setup + refresh
+│   ├── chewy_churn_wheel/                  # Python wheel demo package
+│   │   ├── pyproject.toml
+│   │   └── chewy_churn_pkg/
+│   │       ├── __init__.py
+│   │       └── predict.py                  #   CLI entry point for python_wheel_task
+│   └── transformations/                    # SDP ETL source code
+├── tests/
+│   └── unit/
+│       └── test_features.py                # Feature schema validation tests
 ├── .github/workflows/
-│   ├── deploy_dev.yml             # Feature branch → dev workspace deployment
-│   ├── validate_dev.yml           # PR validation against dev workspace
-│   └── deploy_prod.yml            # Merge to main → prod workspace deployment
-└── templates/                     # Custom bundle templates
+│   ├── validate_dev.yml                    # PR gate: bundle validate + summary
+│   ├── deploy_dev.yml                      # Feature branch: validate -> deploy -> run
+│   └── deploy_prod.yml                     # Main merge: validate -> deploy -> run
+├── docs/
+│   └── superpowers/
+│       ├── specs/                           # Design specification
+│       └── plans/                           # Implementation plan
+└── pyproject.toml                          # Python tooling (uv, ruff, pytest)
 ```
 
-## CI/CD Flow
+## Prerequisites
 
-```
-Push to feature branch  → deploy_dev.yml    (validate → deploy → run pipeline in dev)
-                              │
-PR opened to main       → validate_dev.yml  (validate + summary against dev)
-                              │
-PR merged (push to main)→ deploy_prod.yml   (validate → deploy → run pipeline in prod)
-```
-
-## Configuration
-
-### Bundle Variables
-
-| Variable | Description | Dev Default | Prod Default |
-|----------|-------------|-------------|--------------|
-| `catalog` | Unity Catalog name | `bu1_dev` | `bu1_prod` |
-| `schema` | Schema for tables | `devx_workshop` | `devx_workshop` |
-| `service_principal_id` | SP Application ID (prod only) | `not-used-in-dev` | Set via CI |
-
-**Override via CLI:**
-```bash
-databricks bundle deploy --var="catalog=my_catalog" --var="schema=my_schema"
-```
-
-**Override via environment:**
-```bash
-export BUNDLE_VAR_catalog=my_catalog
-export BUNDLE_VAR_schema=my_schema
-databricks bundle deploy
-```
-
-### Targets
-
-| Target | Mode | Catalog | Description |
-|--------|------|---------|-------------|
-| `dev` (default) | development | `bu1_dev` | Resources prefixed with `[dev username]`, schedules paused |
-| `prod` | production | `bu1_prod` | Single deployment, schedules active, runs as service principal |
+- [Databricks CLI](https://docs.databricks.com/dev-tools/cli/index.html) v0.279+ (for Direct Deployment Engine)
+- [uv](https://docs.astral.sh/uv/) (for Python dependency management and wheel builds)
+- Two Databricks workspaces (dev and prod) with Unity Catalog enabled
+- A Databricks service principal with OIDC federation policies for GitHub Actions
+- GitHub repository with environments (`dev` and `prod`) configured
 
 ## Getting Started
 
-### 1. Install the Databricks CLI
+### 1. Install Tools
 
 ```bash
-# macOS
-brew tap databricks/tap
-brew install databricks
+# Databricks CLI
+brew tap databricks/tap && brew install databricks
+databricks --version  # must be v0.279+
 
-# Verify installation (must be v0.279+)
-databricks --version
+# uv (Python package manager)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Verify
+uv --version
 ```
 
 ### 2. Configure Authentication
 
 ```bash
-# Authenticate to your dev workspace
-databricks auth login --host https://your-dev-workspace.azuredatabricks.net
+# Authenticate to workspaces
+databricks auth login --host https://your-dev-workspace.azuredatabricks.net --profile dev
+databricks auth login --host https://your-prod-workspace.azuredatabricks.net --profile prod
 
-# Authenticate to your prod workspace
-databricks auth login --host https://your-prod-workspace.azuredatabricks.net
+# Verify
+databricks current-user me --profile dev
+databricks current-user me --profile prod
 ```
 
-### 3. Enable the Direct Deployment Engine
+### 3. Validate and Deploy to Dev
 
 ```bash
-# Add to your shell profile (.zshrc, .bashrc, etc.)
-export DATABRICKS_BUNDLE_ENGINE=direct
+databricks bundle validate --target dev --profile dev
+databricks bundle deploy --target dev --profile dev
 ```
 
-### 4. Validate and Deploy
+### 4. Run the MLOps Pipeline
+
+Run jobs in this order for the initial setup:
 
 ```bash
-# Validate dev target (default)
-databricks bundle validate
+# Step 1: Generate synthetic data + build feature table
+databricks bundle run chewy_churn_setup --target dev --profile dev
 
-# Deploy to dev
-databricks bundle deploy
+# Step 2: Train model, validate, deploy (creates serving endpoint)
+databricks bundle run chewy_churn_training --target dev --profile dev
 
-# Run the pipeline
-databricks bundle run sample_job
+# Step 3: Run batch inference with the champion model
+databricks bundle run chewy_churn_inference --target dev --profile dev
+
+# Step 4: Set up Data Profiling monitor on predictions table
+databricks bundle run chewy_churn_monitoring --target dev --profile dev
 ```
 
-## Bundle Commands Reference
+### 5. Verify Results
 
-| Command | Description |
-|---------|-------------|
-| `databricks bundle validate` | Validate bundle configuration |
-| `databricks bundle deploy` | Deploy resources to workspace |
-| `databricks bundle run <resource>` | Run a job or pipeline |
-| `databricks bundle destroy` | Remove deployed resources |
-| `databricks bundle summary` | Show deployment summary |
+```bash
+# Show all deployed resources with URLs
+databricks bundle summary --target dev --profile dev
+```
 
-### Common Flags
+After running, explore in the Databricks UI:
+- **MLflow Experiment** — metrics, parameters, model artifacts, lineage
+- **Unity Catalog** — registered model with Champion/Challenger aliases
+- **Model Serving** — live REST endpoint (make test API calls)
+- **Data Profiling** — auto-generated dashboard with drift metrics
 
-| Flag | Description |
-|------|-------------|
-| `--target <name>` | Target environment (dev, prod) |
-| `-p, --profile <name>` | CLI profile to use |
-| `--var="key=value"` | Override bundle variable |
-| `--force-lock` | Force acquire deployment lock |
+## CI/CD Flow
 
-## CI/CD Setup
+```
+Push to feature branch  -> deploy_dev.yml    (validate -> deploy -> run in dev)
+                                |
+PR opened to main       -> validate_dev.yml  (validate + summary against dev)
+                                |
+PR merged (push to main)-> deploy_prod.yml   (validate -> deploy -> run in prod)
+```
 
-### Authentication: Workload Identity Federation (OIDC)
+All workflows use **GitHub OIDC tokens** to authenticate to Databricks — no long-lived secrets or tokens.
 
-This project uses **GitHub OIDC tokens** to authenticate to Databricks, eliminating the need for long-lived secrets. The setup requires:
+### GitHub Actions Setup
 
-1. A Databricks **service principal** added to both workspaces
-2. **Federation policies** on the SP matching each GitHub environment:
-   ```
-   repo:<org>/<repo>:environment:dev
-   repo:<org>/<repo>:environment:prod
-   ```
-3. GitHub workflow permissions: `id-token: write` and `contents: read`
+**Repository Secret:**
 
-### GitHub Actions Workflows
-
-| Workflow | Trigger | Target | Actions |
-|----------|---------|--------|---------|
-| `deploy_dev.yml` | Push to any branch except `main` | dev | Validate, deploy, run pipeline |
-| `validate_dev.yml` | PR to `main` | dev | Validate, show summary |
-| `deploy_prod.yml` | Push to `main` | prod | Validate, deploy, run pipeline |
-
-### Required GitHub Secrets
-
-**Repository Secrets:**
 | Secret | Description |
-|--------|-------------|
+| --- | --- |
 | `DATABRICKS_CLIENT_ID` | Service principal Application ID |
 
-**Environment Secrets (dev and prod):**
-| Secret | Environment | Description |
-|--------|-------------|-------------|
-| `DATABRICKS_HOST` | dev | Dev workspace URL |
-| `DATABRICKS_HOST` | prod | Prod workspace URL |
+**Environment Secrets** (set per environment: `dev` and `prod`):
 
-> The same secret name `DATABRICKS_HOST` is used in both environments. GitHub resolves the correct value based on the job's `environment` setting.
+| Secret | Description |
+| --- | --- |
+| `DATABRICKS_HOST` | Workspace URL for that environment |
 
-### Required GitHub Variables
+**Environment Variables** (set per environment: `dev` and `prod`):
 
-**Environment Variables (per environment):**
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABRICKS_CATALOG` | Unity Catalog name | `bu1_dev` / `bu1_prod` |
-| `DATABRICKS_SCHEMA` | Schema name | `devx_workshop` |
+| Variable | dev | prod |
+| --- | --- | --- |
+| `DATABRICKS_CATALOG` | `bu1_dev` | `bu1_prod` |
+| `DATABRICKS_SCHEMA` | `devx_workshop` | `devx_workshop` |
 
-> These map to bundle variables via `BUNDLE_VAR_catalog` and `BUNDLE_VAR_schema` in the workflow.
+### OIDC Federation Policies
 
-## Resources
+The service principal needs federation policies for each GitHub trigger context:
 
+```
+repo:<owner>/<repo>:environment:dev
+repo:<owner>/<repo>:environment:prod
+repo:<owner>/<repo>:ref:refs/heads/*
+repo:<owner>/<repo>:pull_request
+```
+
+## Bundle Configuration
+
+### Variables
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `catalog` | Unity Catalog name | `main` |
+| `schema` | Schema for tables and models | `default` |
+| `service_principal_id` | SP Application ID (prod only) | *(required)* |
+| `model_name` | Registered model name in UC | `chewy_churn_model` |
+| `experiment_name` | MLflow experiment path | `/Users/{user}/{target}-chewy-churn-experiment` |
+| `endpoint_name` | Model Serving endpoint name | `chewy-churn-serving` |
+
+Override via CLI: `databricks bundle deploy --var="catalog=my_catalog"`
+
+Override via env: `export BUNDLE_VAR_catalog=my_catalog`
+
+### Targets
+
+| Target | Mode | Catalog | Behavior |
+| --- | --- | --- | --- |
+| `dev` (default) | development | `bu1_dev` | Resource names prefixed, schedules paused |
+| `prod` | production | `bu1_prod` | Single deployment, schedules active, runs as SP |
+
+### Artifacts
+
+The wheel package is built automatically during `databricks bundle deploy` using `uv build --wheel`. No manual build step required.
+
+## Jobs Reference
+
+| Job | Tasks | Description |
+| --- | --- | --- |
+| `chewy_churn_setup` | setup_data -> feature_engineering | One-time data generation + feature table creation |
+| `chewy_churn_training` | train_model -> validate_model -> deploy_model | Full training pipeline with Champion/Challenger promotion |
+| `chewy_churn_inference` | batch_inference | Score feature table with champion model (daily) |
+| `chewy_churn_monitoring` | refresh_monitor | Refresh Data Profiling metrics (daily) |
+| `chewy_churn_wheel_demo` | wheel_predict | Demonstrates `python_wheel_task` packaging |
+| `sample_job` | refresh_pipeline | SDP ETL pipeline refresh (data engineering demo) |
+
+## MLOps Pipeline Details
+
+### Training Workflow (chewy_churn_training)
+
+**Task 1: train_model**
+- Reads feature table from Unity Catalog
+- Trains `RandomForestClassifier` with `class_weight='balanced'`
+- `mlflow.sklearn.autolog(log_models=False)` for param/metric tracking
+- Explicit `mlflow.sklearn.log_model()` for controlled registration to UC
+- Passes `model_uri` and `model_version` to downstream tasks via `dbutils.jobs.taskValues`
+
+**Task 2: validate_model**
+- Loads model and test data, computes F1 and ROC AUC with sklearn
+- Checks thresholds: F1 >= 0.2, ROC AUC >= 0.6
+- On pass: assigns `@challenger` alias to the model version
+- On fail: tags model as `FAILED`, raises exception (blocks deployment)
+
+**Task 3: deploy_model**
+- Compares `@challenger` vs `@champion` on held-out evaluation data
+- Promotes winner to `@champion` alias
+- Creates or updates Model Serving endpoint with the champion version
+
+### Champion/Challenger Pattern
+
+Model aliases in Unity Catalog are mutable named references to specific model versions:
+
+- `@champion` — the model currently serving production traffic
+- `@challenger` — a newly validated candidate being compared against the champion
+
+Inference workloads always target `@champion`. When a new model wins the comparison, the alias pointer moves but inference code stays unchanged — zero-downtime model updates.
+
+### Data Profiling (Monitoring)
+
+Uses `databricks.lakehouse_monitoring` SDK to create an `InferenceLog` profile on the predictions table:
+- Tracks prediction distribution drift over time
+- Compares against the training data baseline
+- Auto-generates a dashboard with drift metrics
+
+## DABs Command Reference
+
+```bash
+# Validate configuration
+databricks bundle validate --target dev --profile dev
+
+# Deploy all resources
+databricks bundle deploy --target dev --profile dev
+
+# Run a specific job
+databricks bundle run chewy_churn_training --target dev --profile dev
+
+# Show deployed resources and URLs
+databricks bundle summary --target dev --profile dev
+
+# Tear down all deployed resources
+databricks bundle destroy --target dev --profile dev
+```
+
+## Tech Stack
+
+- **Databricks Asset Bundles** — declarative infrastructure-as-code for Databricks
+- **GitHub Actions** — CI/CD with OIDC workload identity federation
+- **MLflow** — experiment tracking, model registry, model evaluation
+- **Unity Catalog** — governance for data, models, and features
+- **scikit-learn** — model training (RandomForestClassifier)
+- **Model Serving** — serverless REST endpoint for real-time predictions
+- **Data Profiling** — inference table monitoring and drift detection
+- **uv** — Python package management and wheel builds
+- **ruff** — Python linting and formatting
+
+## Documentation
+
+- [Design Spec](docs/superpowers/specs/2026-03-18-chewy-churn-mlops-design.md) — architecture decisions and data flow
+- [Implementation Plan](docs/superpowers/plans/2026-03-18-chewy-churn-mlops.md) — step-by-step build plan
 - [Databricks Asset Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/)
 - [GitHub Actions for Databricks](https://docs.databricks.com/aws/en/dev-tools/ci-cd/github)
-- [Workload Identity Federation](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation)
-- [Direct Deployment Engine](https://docs.databricks.com/aws/en/dev-tools/bundles/direct)
-- [CI/CD Best Practices](https://docs.databricks.com/aws/en/dev-tools/ci-cd/best-practices)
-- [Bundle Configuration Reference](https://docs.databricks.com/aws/en/dev-tools/bundles/settings)
+- [OAuth Token Federation](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation)
+- [The Big Book of MLOps (2nd Edition)](https://www.databricks.com/resources/ebook/the-big-book-of-mlops)
