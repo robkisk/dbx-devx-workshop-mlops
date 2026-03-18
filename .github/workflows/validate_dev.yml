@@ -1,4 +1,4 @@
-name: DEV - Validate devx_lakeflow_project
+name: DEV - Validate MLOps Bundle
 
 on:
   pull_request:

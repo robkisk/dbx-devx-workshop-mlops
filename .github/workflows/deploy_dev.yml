@@ -1,4 +1,4 @@
-name: DEV - Deploy devx_lakeflow_project
+name: DEV - Deploy MLOps Bundle
 
 on:
   push:
