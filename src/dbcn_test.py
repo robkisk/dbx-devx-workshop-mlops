@@ -1,3 +1,4 @@
+# new line
 # from databricks.connect import DatabricksSession
 
 # Here is a demo of spark session with databricks connect.
