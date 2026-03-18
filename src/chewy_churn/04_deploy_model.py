@@ -105,7 +105,6 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.serving import (
   EndpointCoreConfigInput,
   ServedEntityInput,
-  AutoCaptureConfigInput,
 )
 
 w = WorkspaceClient()
@@ -117,18 +116,12 @@ served_entity = ServedEntityInput(
   workload_size='Small',
   scale_to_zero_enabled=True,
 )
-auto_capture = AutoCaptureConfigInput(
-  catalog_name=catalog,
-  schema_name=schema,
-  enabled=True,
-)
 
 try:
   w.serving_endpoints.get(endpoint_name)
   w.serving_endpoints.update_config(
     name=endpoint_name,
     served_entities=[served_entity],
-    auto_capture_config=auto_capture,
   )
   print(f'Updated endpoint {endpoint_name}')
 except Exception:
@@ -136,7 +129,6 @@ except Exception:
     name=endpoint_name,
     config=EndpointCoreConfigInput(
       served_entities=[served_entity],
-      auto_capture_config=auto_capture,
     ),
   )
   print(f'Created endpoint {endpoint_name}')

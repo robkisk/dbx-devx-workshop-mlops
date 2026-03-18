@@ -256,7 +256,32 @@ weighted_error = Metric(
 )
 ```
 
-## DABs Best Practices
+## DABs-First Workflow
+
+**IMPORTANT: Databricks Asset Bundles commands are the primary interface for all deployment and execution.** Do not drop into lower-level CLI commands (`databricks jobs submit`, `databricks jobs run-now`, etc.) when a `databricks bundle` command can do the job. The bundle layer provides variable interpolation, target awareness, and resource naming that raw API calls bypass.
+
+### Core DABs Commands
+
+```bash
+# Validate bundle configuration and resource definitions
+databricks bundle validate --target dev --profile dev
+
+# Deploy all resources (jobs, pipelines, artifacts, models) to workspace
+databricks bundle deploy --target dev --profile dev
+
+# Run a specific job by its resource key (not job ID)
+databricks bundle run chewy_churn_setup --target dev --profile dev
+databricks bundle run chewy_churn_training --target dev --profile dev
+databricks bundle run chewy_churn_inference --target dev --profile dev
+
+# Show deployed resource summary (names, URLs, IDs)
+databricks bundle summary --target dev --profile dev
+
+# Tear down all deployed resources
+databricks bundle destroy --target dev --profile dev
+```
+
+### DABs Best Practices
 
 - Always validate bundles before deployment: `databricks bundle validate`
 - Use `mode: development` for dev (auto-prefixes resources, pauses schedules)
@@ -265,3 +290,5 @@ weighted_error = Metric(
 - Use `BUNDLE_VAR_*` env vars for CI/CD variable injection
 - Use `concurrency: 1` on prod deploy workflows to prevent race conditions
 - Use `--force-lock` on prod deploys to handle stale locks
+- Use `uv build --wheel` in the `artifacts` section for wheel builds
+- Every runnable notebook should be part of a job resource — avoid ad-hoc `jobs submit`

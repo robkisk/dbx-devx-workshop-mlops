@@ -23,6 +23,7 @@ resources:
             spark_version: 17.3.x-cpu-ml-scala2.13
             node_type_id: Standard_DS3_v2
             num_workers: 0
+            data_security_mode: SINGLE_USER
             spark_conf:
               spark.databricks.cluster.profile: singleNode
               spark.master: "local[*]"

@@ -56,8 +56,20 @@ df_features.write.mode('overwrite').saveAsTable(f'{catalog}.{schema}.chewy_churn
 
 spark.sql(
   f'ALTER TABLE {catalog}.{schema}.chewy_churn_features '
-  f'ADD CONSTRAINT chewy_churn_pk PRIMARY KEY (customer_id)'
+  f'ALTER COLUMN customer_id SET NOT NULL'
 )
+
+try:
+  spark.sql(
+    f'ALTER TABLE {catalog}.{schema}.chewy_churn_features '
+    f'ADD CONSTRAINT chewy_churn_pk PRIMARY KEY (customer_id)'
+  )
+  print('Primary key constraint added')
+except Exception as e:
+  if 'CONSTRAINT_ALREADY_EXISTS' in str(e) or 'already exists' in str(e).lower():
+    print('Primary key constraint already exists, skipping')
+  else:
+    raise
 
 # COMMAND ----------
 

@@ -90,14 +90,15 @@ def logistic(x):
   return 1.0 / (1.0 + np.exp(-x))
 
 # build a linear score from behavioral features
+# coefficients are intentionally strong so the model can learn clear patterns
 z = (
-  -2.0                                                  # intercept (controls base rate)
-  + 0.35 * support_tickets_6m                           # more tickets → more churn
-  - 0.15 * total_orders_12m                             # fewer orders → more churn
-  - 0.8 * subscription_active.astype(float)             # inactive sub → more churn
-  - 0.001 * customer_tenure_days                        # lower tenure → slightly more churn
-  + 0.008 * days_since_last_order                       # longer gap → more churn
-  - 0.01 * website_visits_30d                           # fewer visits → more churn
+  -0.5                                                  # intercept (targets ~35% churn for strong signal)
+  + 0.8 * support_tickets_6m                            # more tickets → more churn
+  - 0.4 * total_orders_12m                              # fewer orders → more churn
+  - 2.0 * subscription_active.astype(float)             # inactive sub → more churn
+  - 0.003 * customer_tenure_days                        # lower tenure → more churn
+  + 0.03 * days_since_last_order                        # longer gap → more churn
+  - 0.05 * website_visits_30d                           # fewer visits → more churn
 )
 
 churn_prob = logistic(z)

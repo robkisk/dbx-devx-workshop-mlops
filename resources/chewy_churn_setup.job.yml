@@ -1,12 +1,9 @@
 resources:
   jobs:
-    chewy_churn_monitoring:
-      name: chewy_churn_monitoring
+    chewy_churn_setup:
+      name: chewy_churn_setup
 
-      trigger:
-        periodic:
-          interval: 1
-          unit: DAYS
+      max_concurrent_runs: 1
 
       parameters:
         - name: catalog
@@ -28,10 +25,20 @@ resources:
               ResourceClass: SingleNode
 
       tasks:
-        - task_key: refresh_monitor
+        - task_key: setup_data
           job_cluster_key: ml_cluster
           notebook_task:
-            notebook_path: ../src/chewy_churn/06_monitor.py
+            notebook_path: ../src/chewy_churn/00_setup_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+
+        - task_key: feature_engineering
+          depends_on:
+            - task_key: setup_data
+          job_cluster_key: ml_cluster
+          notebook_task:
+            notebook_path: ../src/chewy_churn/01_feature_engineering.py
             base_parameters:
               catalog: "{{job.parameters.catalog}}"
               schema: "{{job.parameters.schema}}"

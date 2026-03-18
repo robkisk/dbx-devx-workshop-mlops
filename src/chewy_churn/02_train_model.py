@@ -51,7 +51,7 @@ spark.createDataFrame(test_df).write.mode('overwrite').saveAsTable(
 with mlflow.start_run() as run:
   mlflow.sklearn.autolog(log_models=False)
 
-  model = RandomForestClassifier(n_estimators=100, random_state=42)
+  model = RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42)
   model.fit(X_train, y_train)
 
   signature = mlflow.models.infer_signature(X_train, y_train)
