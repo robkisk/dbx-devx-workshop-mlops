@@ -39,7 +39,7 @@ print(f'Champion version: {champion_ver.version}')
 
 # COMMAND ----------
 
-features_df = spark.table(f'{catalog}.{schema}.chewy_churn_features').toPandas()
+features_df = spark.table(f'{catalog}.{schema}.pet_churn_features').toPandas()
 
 customer_ids = features_df['customer_id']
 X = features_df.drop(columns=['customer_id', 'churned'])
@@ -63,10 +63,10 @@ result_df = pd.DataFrame({
 
 result_spark_df = spark.createDataFrame(result_df)
 result_spark_df.write.mode('append').saveAsTable(
-  f'{catalog}.{schema}.chewy_churn_predictions'
+  f'{catalog}.{schema}.pet_churn_predictions'
 )
 
 # COMMAND ----------
 
 count = result_spark_df.count()
-print(f'Wrote {count} new predictions to {catalog}.{schema}.chewy_churn_predictions')
+print(f'Wrote {count} new predictions to {catalog}.{schema}.pet_churn_predictions')

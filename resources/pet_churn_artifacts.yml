@@ -1,13 +1,13 @@
 resources:
   experiments:
-    chewy_churn_experiment:
+    pet_churn_experiment:
       name: ${var.experiment_name}
       permissions:
         - level: CAN_MANAGE
           user_name: robby.kiskanyan@databricks.com
 
   registered_models:
-    chewy_churn_model:
+    pet_churn_model:
       name: ${var.model_name}
       catalog_name: ${var.catalog}
       schema_name: ${var.schema}

@@ -58,7 +58,7 @@ except Exception:
 # COMMAND ----------
 
 if has_champion:
-  eval_df = spark.table(f'{catalog}.{schema}.chewy_churn_eval').toPandas()
+  eval_df = spark.table(f'{catalog}.{schema}.pet_churn_eval').toPandas()
 
   feature_cols = [c for c in eval_df.columns if c not in ('customer_id', 'churned')]
   X_eval = eval_df[feature_cols]

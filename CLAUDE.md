@@ -1,4 +1,4 @@
-# MLOps Workshop — Chewy
+# MLOps Workshop — Pet Retail Churn
 
 Databricks MLOps workshop showcasing the **deploy code** pattern with Databricks Asset Bundles, GitHub Actions CI/CD, MLflow, and Unity Catalog. Two-environment setup (dev + prod) for demo simplicity.
 
@@ -270,9 +270,9 @@ databricks bundle validate --target dev --profile dev
 databricks bundle deploy --target dev --profile dev
 
 # Run a specific job by its resource key (not job ID)
-databricks bundle run chewy_churn_setup --target dev --profile dev
-databricks bundle run chewy_churn_training --target dev --profile dev
-databricks bundle run chewy_churn_inference --target dev --profile dev
+databricks bundle run pet_churn_setup --target dev --profile dev
+databricks bundle run pet_churn_training --target dev --profile dev
+databricks bundle run pet_churn_inference --target dev --profile dev
 
 # Show deployed resource summary (names, URLs, IDs)
 databricks bundle summary --target dev --profile dev

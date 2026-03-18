@@ -1,7 +1,7 @@
 resources:
   jobs:
-    chewy_churn_setup:
-      name: chewy_churn_setup
+    pet_churn_setup:
+      name: pet_churn_setup
 
       max_concurrent_runs: 1
 
@@ -28,7 +28,7 @@ resources:
         - task_key: setup_data
           job_cluster_key: ml_cluster
           notebook_task:
-            notebook_path: ../src/chewy_churn/00_setup_data.py
+            notebook_path: ../src/pet_churn/00_setup_data.py
             base_parameters:
               catalog: "{{job.parameters.catalog}}"
               schema: "{{job.parameters.schema}}"
@@ -38,7 +38,7 @@ resources:
             - task_key: setup_data
           job_cluster_key: ml_cluster
           notebook_task:
-            notebook_path: ../src/chewy_churn/01_feature_engineering.py
+            notebook_path: ../src/pet_churn/01_feature_engineering.py
             base_parameters:
               catalog: "{{job.parameters.catalog}}"
               schema: "{{job.parameters.schema}}"

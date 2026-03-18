@@ -8,8 +8,8 @@
 .databricks-resources.json
 
 # Wheel build artifacts
-src/chewy_churn_wheel/dist/
-src/chewy_churn_wheel/*.egg-info/
+src/pet_churn_wheel/dist/
+src/pet_churn_wheel/*.egg-info/
 *.whl
 
 # Python

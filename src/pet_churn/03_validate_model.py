@@ -36,7 +36,7 @@ mlflow.set_registry_uri('databricks-uc')
 
 # COMMAND ----------
 
-test_df = spark.table(f'{catalog}.{schema}.chewy_churn_test').toPandas()
+test_df = spark.table(f'{catalog}.{schema}.pet_churn_test').toPandas()
 
 y_true = test_df['churned']
 X_test = test_df.drop(columns=['customer_id', 'churned'])

@@ -10,7 +10,7 @@ schema = dbutils.widgets.get('schema')
 
 # COMMAND ----------
 
-df = spark.table(f'{catalog}.{schema}.chewy_churn_customers')
+df = spark.table(f'{catalog}.{schema}.pet_churn_customers')
 display(df)
 
 # COMMAND ----------
@@ -52,17 +52,17 @@ display(df_features)
 
 # COMMAND ----------
 
-df_features.write.mode('overwrite').saveAsTable(f'{catalog}.{schema}.chewy_churn_features')
+df_features.write.mode('overwrite').saveAsTable(f'{catalog}.{schema}.pet_churn_features')
 
 spark.sql(
-  f'ALTER TABLE {catalog}.{schema}.chewy_churn_features '
+  f'ALTER TABLE {catalog}.{schema}.pet_churn_features '
   f'ALTER COLUMN customer_id SET NOT NULL'
 )
 
 try:
   spark.sql(
-    f'ALTER TABLE {catalog}.{schema}.chewy_churn_features '
-    f'ADD CONSTRAINT chewy_churn_pk PRIMARY KEY (customer_id)'
+    f'ALTER TABLE {catalog}.{schema}.pet_churn_features '
+    f'ADD CONSTRAINT pet_churn_pk PRIMARY KEY (customer_id)'
   )
   print('Primary key constraint added')
 except Exception as e:
@@ -75,12 +75,12 @@ except Exception as e:
 
 train_df, eval_df = df_features.randomSplit([0.8, 0.2], seed=42)
 
-eval_df.write.mode('overwrite').saveAsTable(f'{catalog}.{schema}.chewy_churn_eval')
+eval_df.write.mode('overwrite').saveAsTable(f'{catalog}.{schema}.pet_churn_eval')
 
 # COMMAND ----------
 
-features_count = spark.table(f'{catalog}.{schema}.chewy_churn_features').count()
-eval_count = spark.table(f'{catalog}.{schema}.chewy_churn_eval').count()
+features_count = spark.table(f'{catalog}.{schema}.pet_churn_features').count()
+eval_count = spark.table(f'{catalog}.{schema}.pet_churn_eval').count()
 
-print(f'chewy_churn_features count: {features_count}')
-print(f'chewy_churn_eval count: {eval_count}')
+print(f'pet_churn_features count: {features_count}')
+print(f'pet_churn_eval count: {eval_count}')

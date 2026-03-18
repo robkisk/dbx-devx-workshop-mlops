@@ -26,7 +26,7 @@ mlflow.set_experiment(experiment_name)
 
 # COMMAND ----------
 
-df = spark.read.table(f'{catalog}.{schema}.chewy_churn_features').toPandas()
+df = spark.read.table(f'{catalog}.{schema}.pet_churn_features').toPandas()
 
 # COMMAND ----------
 
@@ -43,7 +43,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 test_df = df.loc[X_test.index]
 spark.createDataFrame(test_df).write.mode('overwrite').saveAsTable(
-  f'{catalog}.{schema}.chewy_churn_test'
+  f'{catalog}.{schema}.pet_churn_test'
 )
 
 # COMMAND ----------

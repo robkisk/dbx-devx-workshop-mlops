@@ -20,8 +20,8 @@ schema = dbutils.widgets.get('schema')
 
 # COMMAND ----------
 
-table_name = f'{catalog}.{schema}.chewy_churn_predictions'
-baseline_table = f'{catalog}.{schema}.chewy_churn_features'
+table_name = f'{catalog}.{schema}.pet_churn_predictions'
+baseline_table = f'{catalog}.{schema}.pet_churn_features'
 
 print(f'Predictions table: {table_name}')
 print(f'Baseline table:    {baseline_table}')

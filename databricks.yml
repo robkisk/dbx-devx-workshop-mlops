@@ -10,10 +10,10 @@ include:
 
 # Artifacts — DABs uses uv to build the wheel automatically during deploy
 artifacts:
-  chewy_churn_wheel:
+  pet_churn_wheel:
     type: whl
     build: uv build --wheel
-    path: ./src/chewy_churn_wheel
+    path: ./src/pet_churn_wheel
 
 # Variable declarations with sensible defaults.
 # Override via CLI: databricks bundle deploy --var="catalog=my_catalog"
@@ -29,13 +29,13 @@ variables:
     description: Application ID of the service principal for CI/CD (required for prod)
   model_name:
     description: Registered model name in UC
-    default: chewy_churn_model
+    default: pet_churn_model
   experiment_name:
     description: MLflow experiment path
-    default: /Users/${workspace.current_user.userName}/${bundle.target}-chewy-churn-experiment
+    default: /Users/${workspace.current_user.userName}/${bundle.target}-pet-churn-experiment
   endpoint_name:
     description: Model Serving endpoint name
-    default: chewy-churn-serving
+    default: pet-churn-serving
 
 targets:
   dev:

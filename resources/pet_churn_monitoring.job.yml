@@ -1,7 +1,7 @@
 resources:
   jobs:
-    chewy_churn_inference:
-      name: chewy_churn_inference
+    pet_churn_monitoring:
+      name: pet_churn_monitoring
 
       trigger:
         periodic:
@@ -13,8 +13,6 @@ resources:
           default: ${var.catalog}
         - name: schema
           default: ${var.schema}
-        - name: model_name
-          default: ${var.model_name}
 
       job_clusters:
         - job_cluster_key: ml_cluster
@@ -30,11 +28,10 @@ resources:
               ResourceClass: SingleNode
 
       tasks:
-        - task_key: batch_inference
+        - task_key: refresh_monitor
           job_cluster_key: ml_cluster
           notebook_task:
-            notebook_path: ../src/chewy_churn/05_batch_inference.py
+            notebook_path: ../src/pet_churn/06_monitor.py
             base_parameters:
               catalog: "{{job.parameters.catalog}}"
               schema: "{{job.parameters.schema}}"
-              model_name: "{{job.parameters.model_name}}"

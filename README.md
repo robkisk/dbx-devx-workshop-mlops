@@ -38,16 +38,16 @@ All ML pipelines — training, validation, deployment, inference, and monitoring
 .
 ├── databricks.yml                          # Bundle root: targets, variables, artifacts
 ├── resources/
-│   ├── chewy_churn_artifacts.yml           # MLflow experiment + UC registered model
-│   ├── chewy_churn_setup.job.yml           # Data generation + feature engineering job
-│   ├── chewy_churn_training.job.yml        # Train -> Validate -> Deploy workflow
-│   ├── chewy_churn_inference.job.yml       # Batch inference (daily, scheduled)
-│   ├── chewy_churn_monitoring.job.yml      # Data Profiling refresh (daily, scheduled)
-│   ├── chewy_churn_wheel_demo.job.yml      # Python wheel packaging demo
+│   ├── pet_churn_artifacts.yml           # MLflow experiment + UC registered model
+│   ├── pet_churn_setup.job.yml           # Data generation + feature engineering job
+│   ├── pet_churn_training.job.yml        # Train -> Validate -> Deploy workflow
+│   ├── pet_churn_inference.job.yml       # Batch inference (daily, scheduled)
+│   ├── pet_churn_monitoring.job.yml      # Data Profiling refresh (daily, scheduled)
+│   ├── pet_churn_wheel_demo.job.yml      # Python wheel packaging demo
 │   ├── devx_lakeflow_project_etl.pipeline.yml  # SDP ETL pipeline (data engineering demo)
 │   └── sample_job.job.yml                      # ETL pipeline refresh job
 ├── src/
-│   ├── chewy_churn/                        # ML notebooks
+│   ├── pet_churn/                        # ML notebooks
 │   │   ├── 00_setup_data.py                #   Synthetic customer data generation
 │   │   ├── 01_feature_engineering.py       #   Feature table with UC primary key
 │   │   ├── 02_train_model.py              #   RandomForest training + MLflow logging
@@ -55,9 +55,9 @@ All ML pipelines — training, validation, deployment, inference, and monitoring
 │   │   ├── 04_deploy_model.py             #   Champion/Challenger + serving endpoint
 │   │   ├── 05_batch_inference.py          #   Score with champion model
 │   │   └── 06_monitor.py                  #   Data Profiling setup + refresh
-│   ├── chewy_churn_wheel/                  # Python wheel demo package
+│   ├── pet_churn_wheel/                  # Python wheel demo package
 │   │   ├── pyproject.toml
-│   │   └── chewy_churn_pkg/
+│   │   └── pet_churn_pkg/
 │   │       ├── __init__.py
 │   │       └── predict.py                  #   CLI entry point for python_wheel_task
 │   └── transformations/                    # SDP ETL source code
@@ -124,16 +124,16 @@ Run jobs in this order for the initial setup:
 
 ```bash
 # Step 1: Generate synthetic data + build feature table
-databricks bundle run chewy_churn_setup --target dev --profile dev
+databricks bundle run pet_churn_setup --target dev --profile dev
 
 # Step 2: Train model, validate, deploy (creates serving endpoint)
-databricks bundle run chewy_churn_training --target dev --profile dev
+databricks bundle run pet_churn_training --target dev --profile dev
 
 # Step 3: Run batch inference with the champion model
-databricks bundle run chewy_churn_inference --target dev --profile dev
+databricks bundle run pet_churn_inference --target dev --profile dev
 
 # Step 4: Set up Data Profiling monitor on predictions table
-databricks bundle run chewy_churn_monitoring --target dev --profile dev
+databricks bundle run pet_churn_monitoring --target dev --profile dev
 ```
 
 ### 5. Verify Results
@@ -202,9 +202,9 @@ repo:<owner>/<repo>:pull_request
 | `catalog` | Unity Catalog name | `main` |
 | `schema` | Schema for tables and models | `default` |
 | `service_principal_id` | SP Application ID (prod only) | *(required)* |
-| `model_name` | Registered model name in UC | `chewy_churn_model` |
-| `experiment_name` | MLflow experiment path | `/Users/{user}/{target}-chewy-churn-experiment` |
-| `endpoint_name` | Model Serving endpoint name | `chewy-churn-serving` |
+| `model_name` | Registered model name in UC | `pet_churn_model` |
+| `experiment_name` | MLflow experiment path | `/Users/{user}/{target}-pet-churn-experiment` |
+| `endpoint_name` | Model Serving endpoint name | `pet-churn-serving` |
 
 Override via CLI: `databricks bundle deploy --var="catalog=my_catalog"`
 
@@ -225,11 +225,11 @@ The wheel package is built automatically during `databricks bundle deploy` using
 
 | Job | Tasks | Description |
 | --- | --- | --- |
-| `chewy_churn_setup` | setup_data -> feature_engineering | One-time data generation + feature table creation |
-| `chewy_churn_training` | train_model -> validate_model -> deploy_model | Full training pipeline with Champion/Challenger promotion |
-| `chewy_churn_inference` | batch_inference | Score feature table with champion model (daily) |
-| `chewy_churn_monitoring` | refresh_monitor | Refresh Data Profiling metrics (daily) |
-| `chewy_churn_wheel_demo` | wheel_predict | Demonstrates `python_wheel_task` packaging |
+| `pet_churn_setup` | setup_data -> feature_engineering | One-time data generation + feature table creation |
+| `pet_churn_training` | train_model -> validate_model -> deploy_model | Full training pipeline with Champion/Challenger promotion |
+| `pet_churn_inference` | batch_inference | Score feature table with champion model (daily) |
+| `pet_churn_monitoring` | refresh_monitor | Refresh Data Profiling metrics (daily) |
+| `pet_churn_wheel_demo` | wheel_predict | Demonstrates `python_wheel_task` packaging |
 | `sample_job` | refresh_pipeline | SDP ETL pipeline refresh (data engineering demo) |
 
 ## Task Dependencies and Execution Order
@@ -239,7 +239,7 @@ The MLOps pipeline is composed of four independent Databricks Workflows, each co
 ### Cross-Job Execution Order
 
 ```
- chewy_churn_setup                chewy_churn_training
+ pet_churn_setup                pet_churn_training
  ┌─────────────────┐              ┌──────────────────────────────────────────────┐
  │                 │              │                                              │
  │  setup_data     │              │  train_model                                 │
@@ -259,7 +259,7 @@ The MLOps pipeline is composed of four independent Databricks Workflows, each co
                           │               │               │
                           ▼               ▼               ▼
               ┌─────────────────┐  ┌────────────┐  ┌──────────────────┐
-              │ chewy_churn_    │  │ Model      │  │ chewy_churn_     │
+              │ pet_churn_    │  │ Model      │  │ pet_churn_     │
               │ inference       │  │ Serving    │  │ monitoring       │
               │                 │  │ Endpoint   │  │                  │
               │ batch_inference │  │ (REST API) │  │ refresh_monitor  │
@@ -274,36 +274,36 @@ The MLOps pipeline is composed of four independent Databricks Workflows, each co
 
 Each job's tasks run sequentially within the workflow. Dependencies are enforced by `depends_on` in the job YAML.
 
-**chewy_churn_setup** (run once):
+**pet_churn_setup** (run once):
 ```
 setup_data ──► feature_engineering
 ```
-- `setup_data` generates synthetic customer data into `chewy_churn_customers`
-- `feature_engineering` reads that table, encodes features, writes `chewy_churn_features` + `chewy_churn_eval`
+- `setup_data` generates synthetic customer data into `pet_churn_customers`
+- `feature_engineering` reads that table, encodes features, writes `pet_churn_features` + `pet_churn_eval`
 
-**chewy_churn_training** (run on demand or scheduled):
+**pet_churn_training** (run on demand or scheduled):
 ```
 train_model ──► validate_model ──► deploy_model
      │                │                  │
      │                │                  ├─► updates @champion alias
      │                │                  └─► creates/updates serving endpoint
      │                └─► assigns @challenger alias (or fails pipeline)
-     └─► writes chewy_churn_test table
+     └─► writes pet_churn_test table
          passes model_uri + model_version via taskValues
 ```
 
-**chewy_churn_inference** (daily schedule):
+**pet_churn_inference** (daily schedule):
 ```
 batch_inference
      │
-     └─► loads @champion model, scores features, appends to chewy_churn_predictions
+     └─► loads @champion model, scores features, appends to pet_churn_predictions
 ```
 
-**chewy_churn_monitoring** (daily schedule):
+**pet_churn_monitoring** (daily schedule):
 ```
 refresh_monitor
      │
-     └─► creates/refreshes Data Profile on chewy_churn_predictions
+     └─► creates/refreshes Data Profile on pet_churn_predictions
          produces _profile_metrics and _drift_metrics tables
 ```
 
@@ -311,27 +311,27 @@ refresh_monitor
 
 | Table | Written By | Read By |
 | --- | --- | --- |
-| `chewy_churn_customers` | setup_data | feature_engineering |
-| `chewy_churn_features` | feature_engineering | train_model, batch_inference, monitoring (baseline) |
-| `chewy_churn_eval` | feature_engineering | deploy_model (Champion vs Challenger comparison) |
-| `chewy_churn_test` | train_model | validate_model |
-| `chewy_churn_predictions` | batch_inference | refresh_monitor |
-| `chewy_churn_predictions_profile_metrics` | refresh_monitor | Dashboards, SQL alerts |
-| `chewy_churn_predictions_drift_metrics` | refresh_monitor | Dashboards, SQL alerts |
+| `pet_churn_customers` | setup_data | feature_engineering |
+| `pet_churn_features` | feature_engineering | train_model, batch_inference, monitoring (baseline) |
+| `pet_churn_eval` | feature_engineering | deploy_model (Champion vs Challenger comparison) |
+| `pet_churn_test` | train_model | validate_model |
+| `pet_churn_predictions` | batch_inference | refresh_monitor |
+| `pet_churn_predictions_profile_metrics` | refresh_monitor | Dashboards, SQL alerts |
+| `pet_churn_predictions_drift_metrics` | refresh_monitor | Dashboards, SQL alerts |
 
 ### After Initial Setup
 
 Once the setup and first training run complete, the steady-state operation is:
 
-1. **Retraining** — `chewy_churn_training` runs on demand (or triggered by monitoring alerts)
-2. **Inference** — `chewy_churn_inference` runs daily on a schedule
-3. **Monitoring** — `chewy_churn_monitoring` runs daily after inference
+1. **Retraining** — `pet_churn_training` runs on demand (or triggered by monitoring alerts)
+2. **Inference** — `pet_churn_inference` runs daily on a schedule
+3. **Monitoring** — `pet_churn_monitoring` runs daily after inference
 
 If monitoring detects drift, a data scientist can trigger retraining, which produces a new model version that goes through the validate -> deploy pipeline automatically.
 
 ## MLOps Pipeline Details
 
-### Training Workflow (chewy_churn_training)
+### Training Workflow (pet_churn_training)
 
 **Task 1: train_model**
 - Reads feature table from Unity Catalog
@@ -377,7 +377,7 @@ databricks bundle validate --target dev --profile dev
 databricks bundle deploy --target dev --profile dev
 
 # Run a specific job
-databricks bundle run chewy_churn_training --target dev --profile dev
+databricks bundle run pet_churn_training --target dev --profile dev
 
 # Show deployed resources and URLs
 databricks bundle summary --target dev --profile dev
@@ -400,8 +400,8 @@ databricks bundle destroy --target dev --profile dev
 
 ## Documentation
 
-- [Design Spec](docs/superpowers/specs/2026-03-18-chewy-churn-mlops-design.md) — architecture decisions and data flow
-- [Implementation Plan](docs/superpowers/plans/2026-03-18-chewy-churn-mlops.md) — step-by-step build plan
+- [Design Spec](docs/superpowers/specs/2026-03-18-pet-churn-mlops-design.md) — architecture decisions and data flow
+- [Implementation Plan](docs/superpowers/plans/2026-03-18-pet-churn-mlops.md) — step-by-step build plan
 - [Databricks Asset Bundles](https://docs.databricks.com/aws/en/dev-tools/bundles/)
 - [GitHub Actions for Databricks](https://docs.databricks.com/aws/en/dev-tools/ci-cd/github)
 - [OAuth Token Federation](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation)

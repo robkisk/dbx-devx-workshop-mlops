@@ -1,7 +1,7 @@
 resources:
   jobs:
-    chewy_churn_wheel_demo:
-      name: chewy_churn_wheel_demo
+    pet_churn_wheel_demo:
+      name: pet_churn_wheel_demo
 
       job_clusters:
         - job_cluster_key: ml_cluster
@@ -20,14 +20,14 @@ resources:
         - task_key: wheel_predict
           job_cluster_key: ml_cluster
           python_wheel_task:
-            package_name: chewy_churn_pkg
-            entry_point: chewy-churn-predict
+            package_name: pet_churn_pkg
+            entry_point: pet-churn-predict
             parameters:
               - --model_uri
               - models:/${var.catalog}.${var.schema}.${var.model_name}@champion
               - --input_table
-              - ${var.catalog}.${var.schema}.chewy_churn_features
+              - ${var.catalog}.${var.schema}.pet_churn_features
               - --output_table
-              - ${var.catalog}.${var.schema}.chewy_churn_wheel_predictions
+              - ${var.catalog}.${var.schema}.pet_churn_wheel_predictions
           libraries:
-            - whl: ../src/chewy_churn_wheel/dist/*.whl
+            - whl: ../src/pet_churn_wheel/dist/*.whl

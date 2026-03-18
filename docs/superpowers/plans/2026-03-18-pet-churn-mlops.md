@@ -1,14 +1,14 @@
-# Chewy Customer Churn MLOps Implementation Plan
+# Pet Retail Customer Churn MLOps Implementation Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build an end-to-end MLOps demo for Chewy customer churn prediction, deployed via Databricks Asset Bundles with GitHub Actions CI/CD.
+**Goal:** Build an end-to-end MLOps demo for Pet retail customer churn prediction, deployed via Databricks Asset Bundles with GitHub Actions CI/CD.
 
 **Architecture:** Notebook-based ML pipelines (data gen, feature engineering, train, validate, deploy, inference, monitor) orchestrated as Databricks Workflows. Bundle resources define jobs and MLflow artifacts in UC. Two-environment setup (dev/prod) with Champion/Challenger model promotion.
 
 **Tech Stack:** Databricks Asset Bundles, GitHub Actions (OIDC), MLflow, scikit-learn, Unity Catalog, Model Serving, Data Profiling (`databricks.lakehouse_monitoring`), Databricks SDK.
 
-**Spec:** `docs/superpowers/specs/2026-03-18-chewy-churn-mlops-design.md`
+**Spec:** `docs/superpowers/specs/2026-03-18-pet-churn-mlops-design.md`
 
 ---
 
@@ -17,21 +17,21 @@
 | File | Action | Responsibility |
 | --- | --- | --- |
 | `databricks.yml` | Modify | Add ML variables (model_name, experiment_name, endpoint_name) |
-| `resources/chewy_churn_artifacts.yml` | Create | MLflow experiment + registered model in UC |
-| `resources/chewy_churn_training.job.yml` | Create | 3-task training workflow (train → validate → deploy) |
-| `resources/chewy_churn_inference.job.yml` | Create | Batch inference job |
-| `resources/chewy_churn_monitoring.job.yml` | Create | Data Profiling refresh job |
-| `resources/chewy_churn_wheel_demo.job.yml` | Create | Wheel packaging demo job |
-| `src/chewy_churn/00_setup_data.py` | Create | Synthetic data generation notebook |
-| `src/chewy_churn/01_feature_engineering.py` | Create | Feature table assembly notebook |
-| `src/chewy_churn/02_train_model.py` | Create | Model training notebook |
-| `src/chewy_churn/03_validate_model.py` | Create | Model validation notebook |
-| `src/chewy_churn/04_deploy_model.py` | Create | Champion/Challenger deployment notebook |
-| `src/chewy_churn/05_batch_inference.py` | Create | Batch inference notebook |
-| `src/chewy_churn/06_monitor.py` | Create | Data Profiling setup notebook |
-| `src/chewy_churn_wheel/pyproject.toml` | Create | Wheel build config |
-| `src/chewy_churn_wheel/chewy_churn_pkg/__init__.py` | Create | Package init |
-| `src/chewy_churn_wheel/chewy_churn_pkg/predict.py` | Create | Batch predict function |
+| `resources/pet_churn_artifacts.yml` | Create | MLflow experiment + registered model in UC |
+| `resources/pet_churn_training.job.yml` | Create | 3-task training workflow (train → validate → deploy) |
+| `resources/pet_churn_inference.job.yml` | Create | Batch inference job |
+| `resources/pet_churn_monitoring.job.yml` | Create | Data Profiling refresh job |
+| `resources/pet_churn_wheel_demo.job.yml` | Create | Wheel packaging demo job |
+| `src/pet_churn/00_setup_data.py` | Create | Synthetic data generation notebook |
+| `src/pet_churn/01_feature_engineering.py` | Create | Feature table assembly notebook |
+| `src/pet_churn/02_train_model.py` | Create | Model training notebook |
+| `src/pet_churn/03_validate_model.py` | Create | Model validation notebook |
+| `src/pet_churn/04_deploy_model.py` | Create | Champion/Challenger deployment notebook |
+| `src/pet_churn/05_batch_inference.py` | Create | Batch inference notebook |
+| `src/pet_churn/06_monitor.py` | Create | Data Profiling setup notebook |
+| `src/pet_churn_wheel/pyproject.toml` | Create | Wheel build config |
+| `src/pet_churn_wheel/pet_churn_pkg/__init__.py` | Create | Package init |
+| `src/pet_churn_wheel/pet_churn_pkg/predict.py` | Create | Batch predict function |
 | `tests/unit/test_features.py` | Create | Unit tests for feature logic |
 
 ---
@@ -48,13 +48,13 @@ Add these variables after the existing `service_principal_id` variable:
 ```yaml
   model_name:
     description: Registered model name in UC
-    default: chewy_churn_model
+    default: pet_churn_model
   experiment_name:
     description: MLflow experiment path
-    default: /chewy-churn-experiment
+    default: /pet-churn-experiment
   endpoint_name:
     description: Model Serving endpoint name
-    default: chewy-churn-serving
+    default: pet-churn-serving
 ```
 
 - [ ] **Step 2: Validate bundle**
@@ -74,21 +74,21 @@ git commit -m "feat: add ML variables to bundle config (model_name, experiment_n
 ## Task 2: Create MLflow Artifacts Resource
 
 **Files:**
-- Create: `resources/chewy_churn_artifacts.yml`
+- Create: `resources/pet_churn_artifacts.yml`
 
 - [ ] **Step 1: Create the artifacts resource file**
 
 ```yaml
 resources:
   experiments:
-    chewy_churn_experiment:
+    pet_churn_experiment:
       name: ${var.experiment_name}
       permissions:
         - level: CAN_MANAGE
           user_name: robby.kiskanyan@databricks.com
 
   registered_models:
-    chewy_churn_model:
+    pet_churn_model:
       name: ${var.catalog}.${var.schema}.${var.model_name}
       catalog_name: ${var.catalog}
       schema_name: ${var.schema}
@@ -101,12 +101,12 @@ resources:
 - [ ] **Step 2: Validate bundle**
 
 Run: `databricks bundle validate --target dev --profile dev`
-Expected: Validation passes. `chewy_churn_experiment` and `chewy_churn_model` appear in bundle summary.
+Expected: Validation passes. `pet_churn_experiment` and `pet_churn_model` appear in bundle summary.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add resources/chewy_churn_artifacts.yml
+git add resources/pet_churn_artifacts.yml
 git commit -m "feat: add MLflow experiment and registered model resources"
 ```
 
@@ -115,9 +115,9 @@ git commit -m "feat: add MLflow experiment and registered model resources"
 ## Task 3: Create Synthetic Data Generation Notebook
 
 **Files:**
-- Create: `src/chewy_churn/00_setup_data.py`
+- Create: `src/pet_churn/00_setup_data.py`
 
-This is a Databricks notebook. Use the `databricks-data-generation` skill (invoke via `Skill` tool) to generate realistic synthetic Chewy customer data.
+This is a Databricks notebook. Use the `databricks-data-generation` skill (invoke via `Skill` tool) to generate realistic synthetic pet retail customer data.
 
 - [ ] **Step 1: Create the notebook**
 
@@ -126,7 +126,7 @@ The notebook must:
 - Generate ~10,000 rows of synthetic customer data with columns: `customer_id`, `subscription_active`, `pet_type`, `days_since_last_order`, `total_orders_12m`, `avg_order_value`, `total_spend_12m`, `customer_tenure_days`, `support_tickets_6m`, `website_visits_30d`, `churned`
 - Use the `databricks-data-generation` skill for generation guidance
 - Target ~20% churn rate with realistic correlations (high support tickets + low orders → higher churn probability)
-- Write to `{catalog}.{schema}.chewy_churn_customers` as a managed Delta table (overwrite mode)
+- Write to `{catalog}.{schema}.pet_churn_customers` as a managed Delta table (overwrite mode)
 - Begin with `# Databricks notebook source` header comment
 
 - [ ] **Step 2: Validate bundle still passes**
@@ -137,8 +137,8 @@ Expected: Passes (notebooks don't affect validation, but confirms no syntax issu
 - [ ] **Step 3: Commit**
 
 ```bash
-git add src/chewy_churn/00_setup_data.py
-git commit -m "feat: add synthetic data generation notebook for Chewy churn"
+git add src/pet_churn/00_setup_data.py
+git commit -m "feat: add synthetic data generation notebook for pet retail churn"
 ```
 
 ---
@@ -146,25 +146,25 @@ git commit -m "feat: add synthetic data generation notebook for Chewy churn"
 ## Task 4: Create Feature Engineering Notebook
 
 **Files:**
-- Create: `src/chewy_churn/01_feature_engineering.py`
+- Create: `src/pet_churn/01_feature_engineering.py`
 
 - [ ] **Step 1: Create the notebook**
 
 The notebook must:
 - Accept `catalog` and `schema` as widget parameters
-- Read from `{catalog}.{schema}.chewy_churn_customers`
+- Read from `{catalog}.{schema}.pet_churn_customers`
 - Select feature columns and the target label
 - Encode `pet_type` as a numeric column (label encoding or one-hot)
 - Cast `subscription_active` and `churned` booleans to integers
-- Write full feature set to `{catalog}.{schema}.chewy_churn_features` (overwrite mode)
-- Set primary key: `ALTER TABLE {catalog}.{schema}.chewy_churn_features ADD CONSTRAINT chewy_churn_pk PRIMARY KEY (customer_id)`
-- Split 20% as held-out evaluation set, write to `{catalog}.{schema}.chewy_churn_eval`
+- Write full feature set to `{catalog}.{schema}.pet_churn_features` (overwrite mode)
+- Set primary key: `ALTER TABLE {catalog}.{schema}.pet_churn_features ADD CONSTRAINT pet_churn_pk PRIMARY KEY (customer_id)`
+- Split 20% as held-out evaluation set, write to `{catalog}.{schema}.pet_churn_eval`
 - Begin with `# Databricks notebook source` header comment
 
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/chewy_churn/01_feature_engineering.py
+git add src/pet_churn/01_feature_engineering.py
 git commit -m "feat: add feature engineering notebook with UC primary key"
 ```
 
@@ -173,7 +173,7 @@ git commit -m "feat: add feature engineering notebook with UC primary key"
 ## Task 5: Create Model Training Notebook
 
 **Files:**
-- Create: `src/chewy_churn/02_train_model.py`
+- Create: `src/pet_churn/02_train_model.py`
 
 - [ ] **Step 1: Create the notebook**
 
@@ -181,10 +181,10 @@ The notebook must:
 - Accept parameters: `catalog`, `schema`, `model_name`, `experiment_name`
 - Set `mlflow.set_registry_uri('databricks-uc')`
 - Set `mlflow.set_experiment(experiment_name)`
-- Read `{catalog}.{schema}.chewy_churn_features`
+- Read `{catalog}.{schema}.pet_churn_features`
 - Drop `customer_id` from feature matrix, use `churned` as target
 - Split train/test 80/20 stratified on `churned` with `random_state=42`
-- Write test split to `{catalog}.{schema}.chewy_churn_test` (overwrite mode)
+- Write test split to `{catalog}.{schema}.pet_churn_test` (overwrite mode)
 - Inside an `mlflow.start_run()` context:
   - `mlflow.sklearn.autolog(log_models=False)` — logs params and metrics without double-logging the model
   - Fit `RandomForestClassifier(n_estimators=100, random_state=42)`
@@ -198,7 +198,7 @@ The notebook must:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/chewy_churn/02_train_model.py
+git add src/pet_churn/02_train_model.py
 git commit -m "feat: add model training notebook with MLflow tracking and UC registration"
 ```
 
@@ -207,7 +207,7 @@ git commit -m "feat: add model training notebook with MLflow tracking and UC reg
 ## Task 6: Create Model Validation Notebook
 
 **Files:**
-- Create: `src/chewy_churn/03_validate_model.py`
+- Create: `src/pet_churn/03_validate_model.py`
 
 - [ ] **Step 1: Create the notebook**
 
@@ -215,7 +215,7 @@ The notebook must:
 - Accept parameters: `catalog`, `schema`, `model_name`
 - Read task values: `model_uri = dbutils.jobs.taskValues.get(taskKey="train_model", key="model_uri")` and `model_version = dbutils.jobs.taskValues.get(taskKey="train_model", key="model_version")`
 - Set `mlflow.set_registry_uri('databricks-uc')`
-- Read test data from `{catalog}.{schema}.chewy_churn_test`
+- Read test data from `{catalog}.{schema}.pet_churn_test`
 - Build evaluation DataFrame with features and `churned` target
 - Run `mlflow.evaluate(model=model_uri, data=eval_df, model_type="classifier", targets="churned")`
 - Extract `f1_score` and `roc_auc` from evaluation results
@@ -233,7 +233,7 @@ The notebook must:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/chewy_churn/03_validate_model.py
+git add src/pet_churn/03_validate_model.py
 git commit -m "feat: add model validation notebook with threshold checks and challenger alias"
 ```
 
@@ -242,7 +242,7 @@ git commit -m "feat: add model validation notebook with threshold checks and cha
 ## Task 7: Create Model Deployment Notebook
 
 **Files:**
-- Create: `src/chewy_churn/04_deploy_model.py`
+- Create: `src/pet_churn/04_deploy_model.py`
 
 - [ ] **Step 1: Create the notebook**
 
@@ -261,7 +261,7 @@ The notebook must:
       has_champion = False
   ```
 - If `has_champion`:
-  - Read evaluation data from `{catalog}.{schema}.chewy_churn_eval`
+  - Read evaluation data from `{catalog}.{schema}.pet_churn_eval`
   - Load both models, predict on eval data, compare F1 scores
   - If challenger F1 >= champion F1: promote challenger to `champion`
   - Else: keep existing champion, delete `challenger` alias
@@ -313,7 +313,7 @@ The notebook must:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/chewy_churn/04_deploy_model.py
+git add src/pet_churn/04_deploy_model.py
 git commit -m "feat: add deployment notebook with Champion/Challenger comparison and Model Serving"
 ```
 
@@ -322,7 +322,7 @@ git commit -m "feat: add deployment notebook with Champion/Challenger comparison
 ## Task 8: Create Batch Inference Notebook
 
 **Files:**
-- Create: `src/chewy_churn/05_batch_inference.py`
+- Create: `src/pet_churn/05_batch_inference.py`
 
 - [ ] **Step 1: Create the notebook**
 
@@ -332,18 +332,18 @@ The notebook must:
 - `full_model_name = f"{catalog}.{schema}.{model_name}"`
 - Load champion model: `model = mlflow.sklearn.load_model(f"models:/{full_model_name}@champion")`
 - Get champion version number for tagging predictions
-- Read feature data from `{catalog}.{schema}.chewy_churn_features`
+- Read feature data from `{catalog}.{schema}.pet_churn_features`
 - Convert to pandas, drop `customer_id` and `churned` for prediction
 - Generate predictions and prediction probabilities (`model.predict()` and `model.predict_proba()`)
 - Build output DataFrame with columns: `customer_id`, `prediction`, `prediction_proba` (probability of churn class), `model_version` (string), `timestamp` (current UTC timestamp)
 - Convert to Spark DataFrame
-- Write to `{catalog}.{schema}.chewy_churn_predictions` (append mode — preserves history for monitoring)
+- Write to `{catalog}.{schema}.pet_churn_predictions` (append mode — preserves history for monitoring)
 - Begin with `# Databricks notebook source` header comment
 
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/chewy_churn/05_batch_inference.py
+git add src/pet_churn/05_batch_inference.py
 git commit -m "feat: add batch inference notebook scoring with champion model"
 ```
 
@@ -352,15 +352,15 @@ git commit -m "feat: add batch inference notebook scoring with champion model"
 ## Task 9: Create Data Profiling (Monitoring) Notebook
 
 **Files:**
-- Create: `src/chewy_churn/06_monitor.py`
+- Create: `src/pet_churn/06_monitor.py`
 
 - [ ] **Step 1: Create the notebook**
 
 The notebook must:
 - Accept parameters: `catalog`, `schema`
 - `import databricks.lakehouse_monitoring as lm`
-- `table_name = f"{catalog}.{schema}.chewy_churn_predictions"`
-- `baseline_table = f"{catalog}.{schema}.chewy_churn_features"`
+- `table_name = f"{catalog}.{schema}.pet_churn_predictions"`
+- `baseline_table = f"{catalog}.{schema}.pet_churn_features"`
 - Try to get existing monitor, create if not found:
   ```python
   try:
@@ -388,7 +388,7 @@ The notebook must:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add src/chewy_churn/06_monitor.py
+git add src/pet_churn/06_monitor.py
 git commit -m "feat: add Data Profiling monitoring notebook"
 ```
 
@@ -397,12 +397,12 @@ git commit -m "feat: add Data Profiling monitoring notebook"
 ## Task 10: Create Training Workflow Resource
 
 **Files:**
-- Create: `resources/chewy_churn_training.job.yml`
+- Create: `resources/pet_churn_training.job.yml`
 
 - [ ] **Step 1: Create the job resource**
 
 The YAML must define a 3-task sequential workflow:
-- Job name: `chewy_churn_training`
+- Job name: `pet_churn_training`
 - Job parameters: `catalog` (default `${var.catalog}`), `schema` (default `${var.schema}`), `model_name` (default `${var.model_name}`), `experiment_name` (default `${var.experiment_name}`), `endpoint_name` (default `${var.endpoint_name}`)
 - All tasks share a single job cluster (ML Runtime, single node) to keep costs low and avoid repeated cluster spin-up:
   ```yaml
@@ -413,9 +413,9 @@ The YAML must define a 3-task sequential workflow:
         node_type_id: i3.xlarge
         num_workers: 0
   ```
-- Task 1 (`train_model`): notebook task pointing to `../src/chewy_churn/02_train_model.py`, `job_cluster_key: ml_cluster`
-- Task 2 (`validate_model`): depends on `train_model`, notebook `../src/chewy_churn/03_validate_model.py`, `job_cluster_key: ml_cluster`
-- Task 3 (`deploy_model`): depends on `validate_model`, notebook `../src/chewy_churn/04_deploy_model.py`, `job_cluster_key: ml_cluster`
+- Task 1 (`train_model`): notebook task pointing to `../src/pet_churn/02_train_model.py`, `job_cluster_key: ml_cluster`
+- Task 2 (`validate_model`): depends on `train_model`, notebook `../src/pet_churn/03_validate_model.py`, `job_cluster_key: ml_cluster`
+- Task 3 (`deploy_model`): depends on `validate_model`, notebook `../src/pet_churn/04_deploy_model.py`, `job_cluster_key: ml_cluster`
 - Each task passes job-level parameters through to the notebook via `{{job.parameters["catalog"]}}` syntax
 - `max_concurrent_runs: 1`
 
@@ -424,12 +424,12 @@ The YAML must define a 3-task sequential workflow:
 - [ ] **Step 2: Validate bundle**
 
 Run: `databricks bundle validate --target dev --profile dev`
-Expected: Passes. `chewy_churn_training` job appears in bundle summary.
+Expected: Passes. `pet_churn_training` job appears in bundle summary.
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add resources/chewy_churn_training.job.yml
+git add resources/pet_churn_training.job.yml
 git commit -m "feat: add training workflow resource (train -> validate -> deploy)"
 ```
 
@@ -438,24 +438,24 @@ git commit -m "feat: add training workflow resource (train -> validate -> deploy
 ## Task 11: Create Inference and Monitoring Job Resources
 
 **Files:**
-- Create: `resources/chewy_churn_inference.job.yml`
-- Create: `resources/chewy_churn_monitoring.job.yml`
+- Create: `resources/pet_churn_inference.job.yml`
+- Create: `resources/pet_churn_monitoring.job.yml`
 
 - [ ] **Step 1: Create inference job resource**
 
 The YAML must define:
-- Job name: `chewy_churn_inference`
+- Job name: `pet_churn_inference`
 - Parameters: `catalog`, `schema`, `model_name` (with defaults from bundle variables)
-- Single task: notebook task pointing to `../src/chewy_churn/05_batch_inference.py`
+- Single task: notebook task pointing to `../src/pet_churn/05_batch_inference.py`
 - Schedule: daily in prod (`quartz_cron_expression: "0 0 11 * * ?"`), paused in dev via `pause_status: PAUSED` override or rely on `mode: development` auto-pause
 - Cluster: single node ML Runtime
 
 - [ ] **Step 2: Create monitoring job resource**
 
 The YAML must define:
-- Job name: `chewy_churn_monitoring`
+- Job name: `pet_churn_monitoring`
 - Parameters: `catalog`, `schema`
-- Single task: notebook task pointing to `../src/chewy_churn/06_monitor.py`
+- Single task: notebook task pointing to `../src/pet_churn/06_monitor.py`
 - Schedule: daily, offset from inference (e.g., `"0 0 13 * * ?"`)
 - Cluster: single node ML Runtime
 
@@ -467,7 +467,7 @@ Expected: Passes. Both jobs appear in bundle summary.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add resources/chewy_churn_inference.job.yml resources/chewy_churn_monitoring.job.yml
+git add resources/pet_churn_inference.job.yml resources/pet_churn_monitoring.job.yml
 git commit -m "feat: add batch inference and monitoring job resources"
 ```
 
@@ -476,36 +476,36 @@ git commit -m "feat: add batch inference and monitoring job resources"
 ## Task 12: Create Wheel Packaging Demo
 
 **Files:**
-- Create: `src/chewy_churn_wheel/pyproject.toml`
-- Create: `src/chewy_churn_wheel/chewy_churn_pkg/__init__.py`
-- Create: `src/chewy_churn_wheel/chewy_churn_pkg/predict.py`
-- Create: `resources/chewy_churn_wheel_demo.job.yml`
+- Create: `src/pet_churn_wheel/pyproject.toml`
+- Create: `src/pet_churn_wheel/pet_churn_pkg/__init__.py`
+- Create: `src/pet_churn_wheel/pet_churn_pkg/predict.py`
+- Create: `resources/pet_churn_wheel_demo.job.yml`
 
 - [ ] **Step 1: Create the Python package**
 
-`src/chewy_churn_wheel/pyproject.toml`:
+`src/pet_churn_wheel/pyproject.toml`:
 ```toml
 [project]
-name = "chewy-churn-pkg"
+name = "pet-churn-pkg"
 version = "0.1.0"
-description = "Chewy churn prediction package - DABs wheel demo"
+description = "Pet retail churn prediction package - DABs wheel demo"
 requires-python = ">=3.10"
 dependencies = ["mlflow>=2.13.0"]
 
 [project.scripts]
-chewy-churn-predict = "chewy_churn_pkg.predict:main"
+pet-churn-predict = "pet_churn_pkg.predict:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 ```
 
-`src/chewy_churn_wheel/chewy_churn_pkg/__init__.py`:
+`src/pet_churn_wheel/pet_churn_pkg/__init__.py`:
 ```python
-"""Chewy churn prediction package."""
+"""Pet retail churn prediction package."""
 ```
 
-`src/chewy_churn_wheel/chewy_churn_pkg/predict.py`:
+`src/pet_churn_wheel/pet_churn_pkg/predict.py`:
 ```python
 """Batch prediction using a UC-registered model."""
 
@@ -543,27 +543,27 @@ def main():
 
 - [ ] **Step 2: Create the wheel demo job resource**
 
-`resources/chewy_churn_wheel_demo.job.yml`:
+`resources/pet_churn_wheel_demo.job.yml`:
 ```yaml
 resources:
   jobs:
-    chewy_churn_wheel_demo:
-      name: chewy_churn_wheel_demo
+    pet_churn_wheel_demo:
+      name: pet_churn_wheel_demo
 
       tasks:
         - task_key: wheel_predict
           python_wheel_task:
-            package_name: chewy_churn_pkg
-            entry_point: chewy-churn-predict
+            package_name: pet_churn_pkg
+            entry_point: pet-churn-predict
             parameters:
               - --model_uri
               - models:/${var.catalog}.${var.schema}.${var.model_name}@champion
               - --input_table
-              - ${var.catalog}.${var.schema}.chewy_churn_features
+              - ${var.catalog}.${var.schema}.pet_churn_features
               - --output_table
-              - ${var.catalog}.${var.schema}.chewy_churn_wheel_predictions
+              - ${var.catalog}.${var.schema}.pet_churn_wheel_predictions
           libraries:
-            - whl: ../src/chewy_churn_wheel/dist/*.whl
+            - whl: ../src/pet_churn_wheel/dist/*.whl
 
       job_clusters:
         - job_cluster_key: ml_cluster
@@ -576,12 +576,12 @@ resources:
 - [ ] **Step 3: Validate bundle**
 
 Run: `databricks bundle validate --target dev --profile dev`
-Expected: Passes. `chewy_churn_wheel_demo` job appears in summary.
+Expected: Passes. `pet_churn_wheel_demo` job appears in summary.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/chewy_churn_wheel/ resources/chewy_churn_wheel_demo.job.yml
+git add src/pet_churn_wheel/ resources/pet_churn_wheel_demo.job.yml
 git commit -m "feat: add wheel packaging demo (predict package + DABs job)"
 ```
 
@@ -701,7 +701,7 @@ Expected: All tests pass.
 
 Verify:
 - All notebooks start with `# Databricks notebook source`
-- All resource YAMLs reference correct notebook paths (`../src/chewy_churn/...`)
+- All resource YAMLs reference correct notebook paths (`../src/pet_churn/...`)
 - `databricks.yml` includes `resources/*.yml` pattern (already does)
 - No hardcoded catalog/schema names — all use parameters
 
@@ -709,5 +709,5 @@ Verify:
 
 ```bash
 git add -A
-git commit -m "chore: final validation pass for chewy churn MLOps demo"
+git commit -m "chore: final validation pass for pet churn MLOps demo"
 ```

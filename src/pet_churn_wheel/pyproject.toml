@@ -1,12 +1,12 @@
 [project]
-name = "chewy-churn-pkg"
+name = "pet-churn-pkg"
 version = "0.1.0"
-description = "Chewy churn prediction package - DABs wheel demo"
+description = "Pet retail churn prediction package - DABs wheel demo"
 requires-python = ">=3.10"
 dependencies = ["mlflow>=2.13.0"]
 
 [project.scripts]
-chewy-churn-predict = "chewy_churn_pkg.predict:main"
+pet-churn-predict = "pet_churn_pkg.predict:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]

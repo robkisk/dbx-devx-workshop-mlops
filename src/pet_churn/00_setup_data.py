@@ -3,7 +3,7 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Chewy Churn - Synthetic Data Generation
+# MAGIC # Pet Retail Churn - Synthetic Data Generation
 # MAGIC
 # MAGIC Generates ~10,000 rows of synthetic customer data for churn prediction.
 # MAGIC Target churn rate is ~20% with realistic behavioral correlations.
@@ -149,7 +149,7 @@ df = spark.createDataFrame(rows, schema=spark_schema)
 
 # COMMAND ----------
 
-table_name = f'{catalog}.{schema}.chewy_churn_customers'
+table_name = f'{catalog}.{schema}.pet_churn_customers'
 
 (
   df.write
