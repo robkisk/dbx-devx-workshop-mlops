@@ -20,6 +20,15 @@ variables:
     default: default
   service_principal_id:
     description: Application ID of the service principal for CI/CD (required for prod)
+  model_name:
+    description: Registered model name in UC
+    default: chewy_churn_model
+  experiment_name:
+    description: MLflow experiment path
+    default: /chewy-churn-experiment
+  endpoint_name:
+    description: Model Serving endpoint name
+    default: chewy-churn-serving
 
 targets:
   dev:
