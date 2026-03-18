@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "robkisk", email = "robby.kiskanyan@databricks.com" }
 ]
-requires-python = ">=3.11"
+requires-python = "==3.12.*"
 
 dependencies = [
 	"databricks-sdk>=0.79.0",
