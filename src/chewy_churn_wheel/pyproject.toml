@@ -1,0 +1,13 @@
+[project]
+name = "chewy-churn-pkg"
+version = "0.1.0"
+description = "Chewy churn prediction package - DABs wheel demo"
+requires-python = ">=3.10"
+dependencies = ["mlflow>=2.13.0"]
+
+[project.scripts]
+chewy-churn-predict = "chewy_churn_pkg.predict:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
