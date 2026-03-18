@@ -232,6 +232,103 @@ The wheel package is built automatically during `databricks bundle deploy` using
 | `chewy_churn_wheel_demo` | wheel_predict | Demonstrates `python_wheel_task` packaging |
 | `sample_job` | refresh_pipeline | SDP ETL pipeline refresh (data engineering demo) |
 
+## Task Dependencies and Execution Order
+
+The MLOps pipeline is composed of four independent Databricks Workflows, each containing sequential tasks. The workflows themselves must be run in order for the initial setup, but after that, training, inference, and monitoring can run independently on their own schedules.
+
+### Cross-Job Execution Order
+
+```
+ chewy_churn_setup                chewy_churn_training
+ ┌─────────────────┐              ┌──────────────────────────────────────────────┐
+ │                 │              │                                              │
+ │  setup_data     │              │  train_model                                 │
+ │       │         │              │       │                                      │
+ │       ▼         │              │       │ passes model_uri, model_version      │
+ │  feature_       │   creates    │       ▼                                      │
+ │  engineering ───┼──────────►   │  validate_model                              │
+ │                 │  feature     │       │                                      │
+ └─────────────────┘  tables     │       │ assigns @challenger alias             │
+                                  │       ▼                                      │
+                                  │  deploy_model                                │
+                                  │       │                                      │
+                                  │       │ promotes @champion, creates endpoint  │
+                                  └───────┼──────────────────────────────────────┘
+                                          │
+                          ┌───────────────┼───────────────┐
+                          │               │               │
+                          ▼               ▼               ▼
+              ┌─────────────────┐  ┌────────────┐  ┌──────────────────┐
+              │ chewy_churn_    │  │ Model      │  │ chewy_churn_     │
+              │ inference       │  │ Serving    │  │ monitoring       │
+              │                 │  │ Endpoint   │  │                  │
+              │ batch_inference │  │ (REST API) │  │ refresh_monitor  │
+              │      │          │  └────────────┘  │      │           │
+              │      ▼          │                   │      ▼           │
+              │ predictions     │                   │ profile_metrics  │
+              │ table           │                   │ drift_metrics    │
+              └─────────────────┘                   └──────────────────┘
+```
+
+### Intra-Job Task Dependencies
+
+Each job's tasks run sequentially within the workflow. Dependencies are enforced by `depends_on` in the job YAML.
+
+**chewy_churn_setup** (run once):
+```
+setup_data ──► feature_engineering
+```
+- `setup_data` generates synthetic customer data into `chewy_churn_customers`
+- `feature_engineering` reads that table, encodes features, writes `chewy_churn_features` + `chewy_churn_eval`
+
+**chewy_churn_training** (run on demand or scheduled):
+```
+train_model ──► validate_model ──► deploy_model
+     │                │                  │
+     │                │                  ├─► updates @champion alias
+     │                │                  └─► creates/updates serving endpoint
+     │                └─► assigns @challenger alias (or fails pipeline)
+     └─► writes chewy_churn_test table
+         passes model_uri + model_version via taskValues
+```
+
+**chewy_churn_inference** (daily schedule):
+```
+batch_inference
+     │
+     └─► loads @champion model, scores features, appends to chewy_churn_predictions
+```
+
+**chewy_churn_monitoring** (daily schedule):
+```
+refresh_monitor
+     │
+     └─► creates/refreshes Data Profile on chewy_churn_predictions
+         produces _profile_metrics and _drift_metrics tables
+```
+
+### Data Dependencies Across Jobs
+
+| Table | Written By | Read By |
+| --- | --- | --- |
+| `chewy_churn_customers` | setup_data | feature_engineering |
+| `chewy_churn_features` | feature_engineering | train_model, batch_inference, monitoring (baseline) |
+| `chewy_churn_eval` | feature_engineering | deploy_model (Champion vs Challenger comparison) |
+| `chewy_churn_test` | train_model | validate_model |
+| `chewy_churn_predictions` | batch_inference | refresh_monitor |
+| `chewy_churn_predictions_profile_metrics` | refresh_monitor | Dashboards, SQL alerts |
+| `chewy_churn_predictions_drift_metrics` | refresh_monitor | Dashboards, SQL alerts |
+
+### After Initial Setup
+
+Once the setup and first training run complete, the steady-state operation is:
+
+1. **Retraining** — `chewy_churn_training` runs on demand (or triggered by monitoring alerts)
+2. **Inference** — `chewy_churn_inference` runs daily on a schedule
+3. **Monitoring** — `chewy_churn_monitoring` runs daily after inference
+
+If monitoring detects drift, a data scientist can trigger retraining, which produces a new model version that goes through the validate -> deploy pipeline automatically.
+
 ## MLOps Pipeline Details
 
 ### Training Workflow (chewy_churn_training)
