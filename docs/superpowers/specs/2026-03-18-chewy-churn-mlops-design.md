@@ -8,7 +8,7 @@ A customer churn prediction demo for Chewy, showcasing end-to-end MLOps on Datab
 
 **Model:** scikit-learn RandomForestClassifier with `mlflow.sklearn.autolog(log_models=False)` for param/metric tracking, plus explicit `mlflow.sklearn.log_model()` for controlled model registration.
 
-**Compute:** ML Runtime 15.x+ (provides MLflow, scikit-learn, pandas pre-installed). Serverless compute for jobs where supported.
+**Compute:** ML Runtime 17.3 LTS (Spark 4.0, provides MLflow, scikit-learn, pandas pre-installed).
 
 **Environments:** Dev (`bu1_dev`) and Prod (`bu1_prod`) — two Unity Catalog catalogs, two DAB targets.
 

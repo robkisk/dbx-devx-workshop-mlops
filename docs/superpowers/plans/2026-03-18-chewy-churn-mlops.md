@@ -409,7 +409,7 @@ The YAML must define a 3-task sequential workflow:
   job_clusters:
     - job_cluster_key: ml_cluster
       new_cluster:
-        spark_version: 15.4.x-cpu-ml-scala2.12
+        spark_version: 17.3.x-cpu-ml-scala2.13
         node_type_id: i3.xlarge
         num_workers: 0
   ```
@@ -568,7 +568,7 @@ resources:
       job_clusters:
         - job_cluster_key: ml_cluster
           new_cluster:
-            spark_version: 15.4.x-cpu-ml-scala2.12
+            spark_version: 17.3.x-cpu-ml-scala2.13
             node_type_id: i3.xlarge
             num_workers: 0
 ```
