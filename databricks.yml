@@ -8,6 +8,13 @@ include:
   - resources/*.yml
   - resources/*/*.yml
 
+# Artifacts — DABs uses uv to build the wheel automatically during deploy
+artifacts:
+  chewy_churn_wheel:
+    type: whl
+    build: uv build --wheel
+    path: ./src/chewy_churn_wheel
+
 # Variable declarations with sensible defaults.
 # Override via CLI: databricks bundle deploy --var="catalog=my_catalog"
 # Or environment variables: export BUNDLE_VAR_catalog=my_catalog
