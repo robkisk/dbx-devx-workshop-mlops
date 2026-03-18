@@ -1,0 +1,52 @@
+# This is a Databricks asset bundle definition for devx_lakeflow_project.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+bundle:
+  name: devx_lakeflow_project
+  uuid: f06e86e3-119b-4889-88b0-db43e1f3ba31
+
+include:
+  - resources/*.yml
+  - resources/*/*.yml
+
+# Variable declarations with sensible defaults.
+# Override via CLI: databricks bundle deploy --var="catalog=my_catalog"
+# Or environment variables: export BUNDLE_VAR_catalog=my_catalog
+variables:
+  catalog:
+    description: Unity Catalog name
+    default: main
+  schema:
+    description: Schema name for tables
+    default: default
+  service_principal_id:
+    description: Application ID of the service principal for CI/CD (required for prod)
+
+targets:
+  dev:
+    # The default target uses 'mode: development' to create a development copy.
+    # - Deployed resources get prefixed with '[dev my_user_name]'
+    # - Any job schedules and triggers are paused by default.
+    # See also https://docs.databricks.com/dev-tools/bundles/deployment-modes.html.
+    mode: development
+    default: true
+    # Set a placeholder SP ID for dev (not used, but satisfies variable requirement)
+    variables:
+      catalog: bu1_dev
+      schema: devx_workshop
+      service_principal_id: not-used-in-dev
+
+  prod:
+    mode: production
+    workspace:
+      # Host is provided via DATABRICKS_HOST env var or CLI profile
+      # Explicit root_path ensures a single production copy per deploying identity
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog: bu1_prod
+      schema: devx_workshop
+    # Run jobs/pipelines as the service principal (best practice for production)
+    run_as:
+      service_principal_name: ${var.service_principal_id}
+    permissions:
+      - user_name: robby.kiskanyan@databricks.com
+        level: CAN_MANAGE

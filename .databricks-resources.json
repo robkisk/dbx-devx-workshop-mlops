@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "resources": [
+    {
+      "type": "schema",
+      "name": "bu1_dev.mcp_demo",
+      "id": "bu1_dev.mcp_demo",
+      "created_at": "2026-03-17T22:39:44.694787+00:00",
+      "updated_at": "2026-03-17T22:39:44.694787+00:00"
+    },
+    {
+      "type": "genie_space",
+      "name": "NYC Taxi Trip Analyst",
+      "id": "01f1225316851f3e9091607aae5c241e",
+      "created_at": "2026-03-17T22:46:09.238770+00:00",
+      "updated_at": "2026-03-17T22:46:09.238770+00:00"
+    },
+    {
+      "type": "vs_endpoint",
+      "name": "mcp-demo-vs-endpoint",
+      "id": "mcp-demo-vs-endpoint",
+      "created_at": "2026-03-17T22:46:22.829633+00:00",
+      "updated_at": "2026-03-17T22:46:22.829633+00:00"
+    }
+  ]
+}

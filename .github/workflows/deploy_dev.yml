@@ -1,0 +1,73 @@
+name: DEV - Deploy devx_lakeflow_project
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - "databricks.yml"
+      - "resources/**"
+      - "src/**"
+
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate:
+    name: "Validate bundle configuration"
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: databricks/setup-cli@main
+
+      - name: Validate bundle
+        run: databricks bundle validate --target dev
+        env:
+          DATABRICKS_BUNDLE_ENGINE: direct
+          DATABRICKS_AUTH_TYPE: github-oidc
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
+          BUNDLE_VAR_schema: ${{ vars.DATABRICKS_SCHEMA }}
+
+  deploy:
+    name: "Deploy to dev workspace"
+    runs-on: ubuntu-latest
+    environment: dev
+
+    needs:
+      - validate
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: databricks/setup-cli@main
+
+      - name: Deploy bundle
+        run: databricks bundle deploy --target dev
+        env:
+          DATABRICKS_BUNDLE_ENGINE: direct
+          DATABRICKS_AUTH_TYPE: github-oidc
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
+          BUNDLE_VAR_schema: ${{ vars.DATABRICKS_SCHEMA }}
+
+      - name: Run pipeline refresh job
+        shell: bash
+        run: |
+          set -o pipefail
+          databricks bundle run sample_job --target dev
+        env:
+          DATABRICKS_BUNDLE_ENGINE: direct
+          DATABRICKS_AUTH_TYPE: github-oidc
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
+          BUNDLE_VAR_schema: ${{ vars.DATABRICKS_SCHEMA }}

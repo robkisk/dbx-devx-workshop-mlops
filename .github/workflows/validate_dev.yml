@@ -1,0 +1,47 @@
+name: DEV - Validate devx_lakeflow_project
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "databricks.yml"
+      - "resources/**"
+      - "src/**"
+
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate:
+    name: "Validate bundle configuration"
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: databricks/setup-cli@main
+
+      - name: Validate bundle
+        run: databricks bundle validate --target dev
+        env:
+          DATABRICKS_BUNDLE_ENGINE: direct
+          DATABRICKS_AUTH_TYPE: github-oidc
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
+          BUNDLE_VAR_schema: ${{ vars.DATABRICKS_SCHEMA }}
+
+      - name: Show bundle summary
+        run: databricks bundle summary --target dev
+        env:
+          DATABRICKS_BUNDLE_ENGINE: direct
+          DATABRICKS_AUTH_TYPE: github-oidc
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
+          BUNDLE_VAR_schema: ${{ vars.DATABRICKS_SCHEMA }}

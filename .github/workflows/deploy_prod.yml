@@ -1,0 +1,78 @@
+name: PROD - Deploy devx_lakeflow_project
+
+concurrency: 1
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+    paths:
+      - "databricks.yml"
+      - "resources/**"
+      - "src/**"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  validate:
+    name: "Validate bundle configuration"
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: databricks/setup-cli@main
+
+      - name: Validate bundle
+        run: databricks bundle validate --target prod
+        env:
+          DATABRICKS_BUNDLE_ENGINE: direct
+          DATABRICKS_AUTH_TYPE: github-oidc
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_service_principal_id: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
+          BUNDLE_VAR_schema: ${{ vars.DATABRICKS_SCHEMA }}
+
+  deploy:
+    name: "Deploy to production"
+    runs-on: ubuntu-latest
+    environment: prod
+
+    needs:
+      - validate
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: databricks/setup-cli@main
+
+      - name: Deploy bundle
+        run: databricks bundle deploy --target prod --force-lock
+        env:
+          DATABRICKS_BUNDLE_ENGINE: direct
+          DATABRICKS_AUTH_TYPE: github-oidc
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_service_principal_id: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
+          BUNDLE_VAR_schema: ${{ vars.DATABRICKS_SCHEMA }}
+
+      - name: Run pipeline refresh job
+        shell: bash
+        run: |
+          set -o pipefail
+          databricks bundle run sample_job --target prod
+        env:
+          DATABRICKS_BUNDLE_ENGINE: direct
+          DATABRICKS_AUTH_TYPE: github-oidc
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_service_principal_id: ${{ secrets.DATABRICKS_CLIENT_ID }}
+          BUNDLE_VAR_catalog: ${{ vars.DATABRICKS_CATALOG }}
+          BUNDLE_VAR_schema: ${{ vars.DATABRICKS_SCHEMA }}
