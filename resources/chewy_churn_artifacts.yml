@@ -8,7 +8,7 @@ resources:
 
   registered_models:
     chewy_churn_model:
-      name: ${var.catalog}.${var.schema}.${var.model_name}
+      name: ${var.model_name}
       catalog_name: ${var.catalog}
       schema_name: ${var.schema}
       grants:

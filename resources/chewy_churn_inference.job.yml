@@ -20,7 +20,7 @@ resources:
         - job_cluster_key: ml_cluster
           new_cluster:
             spark_version: 17.3.x-cpu-ml-scala2.13
-            node_type_id: i3.xlarge
+            node_type_id: Standard_DS3_v2
             num_workers: 0
             spark_conf:
               spark.databricks.cluster.profile: singleNode
