@@ -144,6 +144,7 @@ databricks bundle summary --target dev --profile dev
 ```
 
 After running, explore in the Databricks UI:
+
 - **MLflow Experiment** — metrics, parameters, model artifacts, lineage
 - **Unity Catalog** — registered model with Champion/Challenger aliases
 - **Model Serving** — live REST endpoint (make test API calls)
@@ -165,22 +166,22 @@ All workflows use **GitHub OIDC tokens** to authenticate to Databricks — no lo
 
 **Repository Secret:**
 
-| Secret | Description |
-| --- | --- |
+| Secret                 | Description                      |
+| ---------------------- | -------------------------------- |
 | `DATABRICKS_CLIENT_ID` | Service principal Application ID |
 
 **Environment Secrets** (set per environment: `dev` and `prod`):
 
-| Secret | Description |
-| --- | --- |
+| Secret            | Description                        |
+| ----------------- | ---------------------------------- |
 | `DATABRICKS_HOST` | Workspace URL for that environment |
 
 **Environment Variables** (set per environment: `dev` and `prod`):
 
-| Variable | dev | prod |
-| --- | --- | --- |
-| `DATABRICKS_CATALOG` | `bu1_dev` | `bu1_prod` |
-| `DATABRICKS_SCHEMA` | `devx_workshop` | `devx_workshop` |
+| Variable             | dev             | prod            |
+| -------------------- | --------------- | --------------- |
+| `DATABRICKS_CATALOG` | `bu1_dev`       | `bu1_prod`      |
+| `DATABRICKS_SCHEMA`  | `devx_workshop` | `devx_workshop` |
 
 ### OIDC Federation Policies
 
@@ -197,14 +198,14 @@ repo:<owner>/<repo>:pull_request
 
 ### Variables
 
-| Variable | Description | Default |
-| --- | --- | --- |
-| `catalog` | Unity Catalog name | `main` |
-| `schema` | Schema for tables and models | `default` |
-| `service_principal_id` | SP Application ID (prod only) | *(required)* |
-| `model_name` | Registered model name in UC | `pet_churn_model` |
-| `experiment_name` | MLflow experiment path | `/Users/{user}/{target}-pet-churn-experiment` |
-| `endpoint_name` | Model Serving endpoint name | `pet-churn-serving` |
+| Variable               | Description                   | Default                                       |
+| ---------------------- | ----------------------------- | --------------------------------------------- |
+| `catalog`              | Unity Catalog name            | `main`                                        |
+| `schema`               | Schema for tables and models  | `default`                                     |
+| `service_principal_id` | SP Application ID (prod only) | _(required)_                                  |
+| `model_name`           | Registered model name in UC   | `pet_churn_model`                             |
+| `experiment_name`      | MLflow experiment path        | `/Users/{user}/{target}-pet-churn-experiment` |
+| `endpoint_name`        | Model Serving endpoint name   | `pet-churn-serving`                           |
 
 Override via CLI: `databricks bundle deploy --var="catalog=my_catalog"`
 
@@ -212,10 +213,10 @@ Override via env: `export BUNDLE_VAR_catalog=my_catalog`
 
 ### Targets
 
-| Target | Mode | Catalog | Behavior |
-| --- | --- | --- | --- |
-| `dev` (default) | development | `bu1_dev` | Resource names prefixed, schedules paused |
-| `prod` | production | `bu1_prod` | Single deployment, schedules active, runs as SP |
+| Target          | Mode        | Catalog    | Behavior                                        |
+| --------------- | ----------- | ---------- | ----------------------------------------------- |
+| `dev` (default) | development | `bu1_dev`  | Resource names prefixed, schedules paused       |
+| `prod`          | production  | `bu1_prod` | Single deployment, schedules active, runs as SP |
 
 ### Artifacts
 
@@ -223,14 +224,14 @@ The wheel package is built automatically during `databricks bundle deploy` using
 
 ## Jobs Reference
 
-| Job | Tasks | Description |
-| --- | --- | --- |
-| `pet_churn_setup` | setup_data -> feature_engineering | One-time data generation + feature table creation |
-| `pet_churn_training` | train_model -> validate_model -> deploy_model | Full training pipeline with Champion/Challenger promotion |
-| `pet_churn_inference` | batch_inference | Score feature table with champion model (daily) |
-| `pet_churn_monitoring` | refresh_monitor | Refresh Data Profiling metrics (daily) |
-| `pet_churn_wheel_demo` | wheel_predict | Demonstrates `python_wheel_task` packaging |
-| `sample_job` | refresh_pipeline | SDP ETL pipeline refresh (data engineering demo) |
+| Job                    | Tasks                                         | Description                                               |
+| ---------------------- | --------------------------------------------- | --------------------------------------------------------- |
+| `pet_churn_setup`      | setup_data -> feature_engineering             | One-time data generation + feature table creation         |
+| `pet_churn_training`   | train_model -> validate_model -> deploy_model | Full training pipeline with Champion/Challenger promotion |
+| `pet_churn_inference`  | batch_inference                               | Score feature table with champion model (daily)           |
+| `pet_churn_monitoring` | refresh_monitor                               | Refresh Data Profiling metrics (daily)                    |
+| `pet_churn_wheel_demo` | wheel_predict                                 | Demonstrates `python_wheel_task` packaging                |
+| `sample_job`           | refresh_pipeline                              | SDP ETL pipeline refresh (data engineering demo)          |
 
 ## Task Dependencies and Execution Order
 
@@ -275,13 +276,16 @@ The MLOps pipeline is composed of four independent Databricks Workflows, each co
 Each job's tasks run sequentially within the workflow. Dependencies are enforced by `depends_on` in the job YAML.
 
 **pet_churn_setup** (run once):
+
 ```
 setup_data ──► feature_engineering
 ```
+
 - `setup_data` generates synthetic customer data into `pet_churn_customers`
 - `feature_engineering` reads that table, encodes features, writes `pet_churn_features` + `pet_churn_eval`
 
 **pet_churn_training** (run on demand or scheduled):
+
 ```
 train_model ──► validate_model ──► deploy_model
      │                │                  │
@@ -293,6 +297,7 @@ train_model ──► validate_model ──► deploy_model
 ```
 
 **pet_churn_inference** (daily schedule):
+
 ```
 batch_inference
      │
@@ -300,6 +305,7 @@ batch_inference
 ```
 
 **pet_churn_monitoring** (daily schedule):
+
 ```
 refresh_monitor
      │
@@ -309,15 +315,15 @@ refresh_monitor
 
 ### Data Dependencies Across Jobs
 
-| Table | Written By | Read By |
-| --- | --- | --- |
-| `pet_churn_customers` | setup_data | feature_engineering |
-| `pet_churn_features` | feature_engineering | train_model, batch_inference, monitoring (baseline) |
-| `pet_churn_eval` | feature_engineering | deploy_model (Champion vs Challenger comparison) |
-| `pet_churn_test` | train_model | validate_model |
-| `pet_churn_predictions` | batch_inference | refresh_monitor |
-| `pet_churn_predictions_profile_metrics` | refresh_monitor | Dashboards, SQL alerts |
-| `pet_churn_predictions_drift_metrics` | refresh_monitor | Dashboards, SQL alerts |
+| Table                                   | Written By          | Read By                                             |
+| --------------------------------------- | ------------------- | --------------------------------------------------- |
+| `pet_churn_customers`                   | setup_data          | feature_engineering                                 |
+| `pet_churn_features`                    | feature_engineering | train_model, batch_inference, monitoring (baseline) |
+| `pet_churn_eval`                        | feature_engineering | deploy_model (Champion vs Challenger comparison)    |
+| `pet_churn_test`                        | train_model         | validate_model                                      |
+| `pet_churn_predictions`                 | batch_inference     | refresh_monitor                                     |
+| `pet_churn_predictions_profile_metrics` | refresh_monitor     | Dashboards, SQL alerts                              |
+| `pet_churn_predictions_drift_metrics`   | refresh_monitor     | Dashboards, SQL alerts                              |
 
 ### After Initial Setup
 
@@ -334,6 +340,7 @@ If monitoring detects drift, a data scientist can trigger retraining, which prod
 ### Training Workflow (pet_churn_training)
 
 **Task 1: train_model**
+
 - Reads feature table from Unity Catalog
 - Trains `RandomForestClassifier` with `class_weight='balanced'`
 - `mlflow.sklearn.autolog(log_models=False)` for param/metric tracking
@@ -341,12 +348,14 @@ If monitoring detects drift, a data scientist can trigger retraining, which prod
 - Passes `model_uri` and `model_version` to downstream tasks via `dbutils.jobs.taskValues`
 
 **Task 2: validate_model**
+
 - Loads model and test data, computes F1 and ROC AUC with sklearn
 - Checks thresholds: F1 >= 0.2, ROC AUC >= 0.6
 - On pass: assigns `@challenger` alias to the model version
 - On fail: tags model as `FAILED`, raises exception (blocks deployment)
 
 **Task 3: deploy_model**
+
 - Compares `@challenger` vs `@champion` on held-out evaluation data
 - Promotes winner to `@champion` alias
 - Creates or updates Model Serving endpoint with the champion version
@@ -363,6 +372,7 @@ Inference workloads always target `@champion`. When a new model wins the compari
 ### Data Profiling (Monitoring)
 
 Uses `databricks.lakehouse_monitoring` SDK to create an `InferenceLog` profile on the predictions table:
+
 - Tracks prediction distribution drift over time
 - Compares against the training data baseline
 - Auto-generates a dashboard with drift metrics
@@ -406,3 +416,5 @@ databricks bundle destroy --target dev --profile dev
 - [GitHub Actions for Databricks](https://docs.databricks.com/aws/en/dev-tools/ci-cd/github)
 - [OAuth Token Federation](https://docs.databricks.com/aws/en/dev-tools/auth/oauth-federation)
 - [The Big Book of MLOps (2nd Edition)](https://www.databricks.com/resources/ebook/the-big-book-of-mlops)
+
+# new line
