@@ -1,0 +1,64 @@
+resources:
+  jobs:
+    chewy_churn_training:
+      name: chewy_churn_training
+
+      max_concurrent_runs: 1
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.schema}
+        - name: model_name
+          default: ${var.model_name}
+        - name: experiment_name
+          default: ${var.experiment_name}
+        - name: endpoint_name
+          default: ${var.endpoint_name}
+
+      job_clusters:
+        - job_cluster_key: ml_cluster
+          new_cluster:
+            spark_version: 17.3.x-cpu-ml-scala2.13
+            node_type_id: i3.xlarge
+            num_workers: 0
+            spark_conf:
+              spark.databricks.cluster.profile: singleNode
+              spark.master: "local[*]"
+            custom_tags:
+              ResourceClass: SingleNode
+
+      tasks:
+        - task_key: train_model
+          job_cluster_key: ml_cluster
+          notebook_task:
+            notebook_path: ../src/chewy_churn/02_train_model.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+              model_name: "{{job.parameters.model_name}}"
+              experiment_name: "{{job.parameters.experiment_name}}"
+
+        - task_key: validate_model
+          depends_on:
+            - task_key: train_model
+          job_cluster_key: ml_cluster
+          notebook_task:
+            notebook_path: ../src/chewy_churn/03_validate_model.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+              model_name: "{{job.parameters.model_name}}"
+
+        - task_key: deploy_model
+          depends_on:
+            - task_key: validate_model
+          job_cluster_key: ml_cluster
+          notebook_task:
+            notebook_path: ../src/chewy_churn/04_deploy_model.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+              model_name: "{{job.parameters.model_name}}"
+              endpoint_name: "{{job.parameters.endpoint_name}}"
